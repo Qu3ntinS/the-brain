@@ -2,10 +2,17 @@
   "name": "the-brain",
   "version": "1.0.50",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "bun run --watch src/index.ts"
+    "dev": "bun run --watch src/index.ts",
+    "start": "bun run src/index.ts",
+    "generate:logo": "python3 scripts/build-logo.py",
+    "test": "bun test"
   },
   "dependencies": {
+    "@elysiajs/bearer": "^1.4.4",
+    "@elysiajs/cors": "^1.4.2",
+    "@elysiajs/jwt": "^1.4.2",
+    "@elysiajs/openapi": "^1.4.15",
+    "@elysiajs/static": "^1.4.10",
     "elysia": "latest"
   },
   "devDependencies": {

@@ -1,7 +1,10 @@
-import { Elysia } from "elysia";
+import { env } from './config/env'
+import { createApp } from './app'
 
-const app = new Elysia().get("/", () => "Hello Elysia").listen(3000);
+const app = createApp().listen(env.port)
 
 console.log(
-  `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`
-);
+	`🧠 The Brain is running at http://${app.server?.hostname}:${app.server?.port}`,
+)
+
+export type { App } from './app'

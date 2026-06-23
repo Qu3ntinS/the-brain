@@ -6,6 +6,12 @@
       "sourceType": "github",
       "skillPath": "elysia/SKILL.md",
       "computedHash": "55268e69a2c766ed67e56a0db57544f60cc52dba0c7f024a974baf965e525e1b"
+    },
+    "wiggle": {
+      "source": "talknerdytome-labs/wiggle-claude-skill",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "ce0170577c73049bdabf18aed639a13974f9b8f470b6762875e5a662db74b418"
     }
   }
 }
