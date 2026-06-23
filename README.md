@@ -1,15 +1,67 @@
-# Elysia with Bun runtime
+<div align="center">
 
-## Getting Started
-To get started with this template, simply paste this command into your terminal:
+<center>
+  <img src="public/assets/brain-logo.png" alt="The Brain" width="120" />
+</center>
+
+<h1>The Brain</h1>
+<p>Personal API hub — portfolio glue, side projects, and one place to log in.</p>
+
+</div>
+
+---
+
+**Stack:** [Bun](https://bun.sh) · [ElysiaJS](https://elysiajs.com) · [Vue 3](https://vuejs.org) · [Vite](https://vite.dev) · [Tailwind](https://tailwindcss.com) · [Scalar](https://scalar.com)
+
+## Quick start
+
 ```bash
-bun create elysia ./elysia-example
+cp .env.example .env   # JWT_SECRET + ADMIN_PASSWORD setzen
+bun install
+bun run --cwd web install
+bun run dev            # API :3000 · UI :5173 (proxied /api)
 ```
 
-## Development
-To start the development server run:
+Production build:
+
 ```bash
-bun run dev
+bun run build
+bun run start
 ```
 
-Open http://localhost:3000/ with your browser to see the result.
+## Environment
+
+| Variable | Required | Default |
+|----------|----------|---------|
+| `JWT_SECRET` | yes | — |
+| `ADMIN_PASSWORD` | yes | — |
+| `ADMIN_USERNAME` | no | `admin` |
+| `PORT` | no | `3000` |
+| `JWT_EXPIRES_IN` | no | `7d` |
+| `CORS_ORIGIN` | prod | — |
+
+## Scripts
+
+| Command | Description |
+|---------|-------------|
+| `bun run dev` | API + web dev servers |
+| `bun run build` | Build SPA into `web/dist` |
+| `bun run start` | Run API (serves built UI) |
+| `bun test` | Backend tests |
+| `bun run test:web` | Frontend tests |
+| `bun run generate:logo` | Regenerate logo assets |
+
+## Routes
+
+| Path | Description |
+|------|-------------|
+| `/` | Landing |
+| `/login` | Sign in |
+| `/dashboard` | Overview (auth) |
+| `/dashboard/docs` | API reference (auth) |
+| `/api/docs` | Standalone OpenAPI UI |
+| `/api/docs/json` | OpenAPI spec |
+
+## License
+
+**Private** — all rights reserved. Not for redistribution or public use.
