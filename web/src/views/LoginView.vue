@@ -13,7 +13,11 @@ const loading = ref(false)
 
 onMounted(async () => {
 	if (await syncSession()) {
-		await router.replace(typeof route.query.next === 'string' ? route.query.next : '/')
+		const next =
+			typeof route.query.next === 'string' && route.query.next.startsWith('/')
+				? route.query.next
+				: '/dashboard'
+		await router.replace(next)
 	}
 })
 
@@ -32,7 +36,7 @@ async function onSubmit() {
 		const next =
 			typeof route.query.next === 'string' && route.query.next.startsWith('/')
 				? route.query.next
-				: '/'
+				: '/dashboard'
 
 		await router.replace(next)
 	} catch {

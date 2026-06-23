@@ -34,13 +34,13 @@ const isAuthed = computed(() => !!sessionState.user)
 			</p>
 
 			<div class="mt-2 flex flex-wrap justify-center gap-3">
-				<a
+				<RouterLink
 					v-if="isAuthed"
 					class="inline-flex items-center rounded-full bg-gradient-to-br from-brain-pink to-[#c44dff] px-5 py-3 text-sm font-medium text-white shadow-[0_8px_32px_rgba(255,107,203,0.35)] transition hover:scale-[1.04]"
-					href="/api/docs"
+					to="/dashboard"
 				>
-					Docs
-				</a>
+					Dashboard
+				</RouterLink>
 				<RouterLink
 					v-else
 					class="inline-flex items-center rounded-full bg-gradient-to-br from-brain-pink to-[#c44dff] px-5 py-3 text-sm font-medium text-white shadow-[0_8px_32px_rgba(255,107,203,0.35)] transition hover:scale-[1.04]"

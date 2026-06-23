@@ -62,5 +62,8 @@ export const createApp = () =>
 		.get('/login', ({ set }) => serveSpaShell(set), {
 			detail: { hide: true },
 		})
+		.get('/dashboard', ({ set }) => serveSpaShell(set), {
+			detail: { hide: true },
+		})
 
 export type App = ReturnType<typeof createApp>

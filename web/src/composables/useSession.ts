@@ -12,6 +12,24 @@ export const sessionState = reactive({
 	ready: false,
 })
 
+export function waitForSession(): Promise<void> {
+	if (sessionState.ready) return Promise.resolve()
+
+	return new Promise((resolve) => {
+		const interval = setInterval(() => {
+			if (sessionState.ready) {
+				clearInterval(interval)
+				resolve()
+			}
+		}, 16)
+	})
+}
+
+export async function logout(): Promise<void> {
+	await api.api.auth.logout.post()
+	sessionState.user = null
+}
+
 export async function fetchMe(): Promise<AuthUser | null> {
 	const { data, error } = await api.api.auth.me.get()
 
@@ -80,6 +98,8 @@ export function useSession() {
 	return {
 		state: sessionState,
 		login,
+		logout,
 		syncSession,
+		waitForSession,
 	}
 }
