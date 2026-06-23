@@ -5,7 +5,6 @@ import { AuthModel } from './model'
 import { AuthService } from './service'
 
 export const authModule = new Elysia({ prefix: '/auth', name: 'auth' })
-	.use(jwtAuth)
 	.model({
 		'auth.login': AuthModel.loginBody,
 		'auth.token': AuthModel.tokenResponse,
@@ -39,6 +38,32 @@ export const authModule = new Elysia({ prefix: '/auth', name: 'auth' })
 				summary: 'Login',
 				description: 'Exchange credentials for a JWT and session cookie',
 				tags: ['Auth'],
+			},
+		},
+	)
+	.post(
+		'/refresh',
+		async ({ user, jwt, set }) => {
+			const session = await AuthService.issueSession(jwt, user.username)
+
+			set.headers['Set-Cookie'] = AuthService.sessionCookie(
+				session.accessToken,
+			)
+
+			return AuthService.buildSessionResponse(session.accessToken)
+		},
+		{
+			isAuth: true,
+			response: {
+				200: 'auth.token',
+				401: 'auth.error',
+			},
+			detail: {
+				summary: 'Refresh session',
+				description:
+					'Issues a new JWT and refreshes the browser session cookie',
+				tags: ['Auth'],
+				security: [{ bearerAuth: [] }],
 			},
 		},
 	)

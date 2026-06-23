@@ -1,0 +1,26 @@
+@import 'tailwindcss';
+
+@theme {
+	--color-brain-bg: #0d0221;
+	--color-brain-surface: #1a0a3e;
+	--color-brain-pink: #ff6bcb;
+	--color-brain-teal: #00f5d4;
+	--color-brain-gold: #ffe066;
+	--color-brain-text: #f8f4ff;
+	--color-brain-muted: #b8a9d9;
+	--font-display: 'Syne', system-ui, sans-serif;
+	--font-body: 'DM Sans', system-ui, sans-serif;
+}
+
+html,
+body,
+#app {
+	min-height: 100%;
+}
+
+body {
+	margin: 0;
+	font-family: var(--font-body);
+	color: var(--color-brain-text);
+	background: var(--color-brain-bg);
+}

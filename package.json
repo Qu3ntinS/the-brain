@@ -2,10 +2,15 @@
   "name": "the-brain",
   "version": "1.0.50",
   "scripts": {
-    "dev": "bun run --watch src/index.ts",
+    "dev": "bun run dev:api & bun run dev:web",
+    "dev:api": "bun run --watch src/index.ts",
+    "dev:web": "bun run --cwd web dev",
     "start": "bun run src/index.ts",
+    "build:web": "bun run --cwd web build",
+    "build": "bun run build:web",
     "generate:logo": "python3 scripts/build-logo.py",
-    "test": "bun test"
+    "test": "bun test test/",
+    "test:web": "bun run --cwd web test"
   },
   "dependencies": {
     "@elysiajs/bearer": "^1.4.4",

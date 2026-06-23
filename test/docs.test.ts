@@ -9,23 +9,25 @@ const { createApp } = await import('../src/app')
 describe('docs', () => {
 	const app = createApp()
 
-	it('blocks /docs without a token', async () => {
-		const response = await app.handle(new Request('http://localhost/docs'))
-
-		expect(response.status).toBe(401)
-	})
-
-	it('blocks /docs/json without a token', async () => {
+	it('blocks /api/docs without a token', async () => {
 		const response = await app.handle(
-			new Request('http://localhost/docs/json'),
+			new Request('http://localhost/api/docs'),
 		)
 
 		expect(response.status).toBe(401)
 	})
 
-	it('allows /docs with a valid token', async () => {
+	it('blocks /api/docs/json without a token', async () => {
+		const response = await app.handle(
+			new Request('http://localhost/api/docs/json'),
+		)
+
+		expect(response.status).toBe(401)
+	})
+
+	it('allows /api/docs with a valid token', async () => {
 		const login = await app.handle(
-			new Request('http://localhost/auth/login', {
+			new Request('http://localhost/api/auth/login', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
@@ -37,7 +39,7 @@ describe('docs', () => {
 		const { accessToken } = await login.json()
 
 		const response = await app.handle(
-			new Request('http://localhost/docs', {
+			new Request('http://localhost/api/docs', {
 				headers: { Authorization: `Bearer ${accessToken}` },
 			}),
 		)
@@ -46,9 +48,9 @@ describe('docs', () => {
 		expect(response.headers.get('content-type')).toContain('text/html')
 	})
 
-	it('allows /docs with a session cookie', async () => {
+	it('allows /api/docs with a session cookie', async () => {
 		const login = await app.handle(
-			new Request('http://localhost/auth/login', {
+			new Request('http://localhost/api/auth/login', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
@@ -62,7 +64,7 @@ describe('docs', () => {
 		expect(cookie).toContain('brain_token=')
 
 		const response = await app.handle(
-			new Request('http://localhost/docs', {
+			new Request('http://localhost/api/docs', {
 				headers: { Cookie: cookie ?? '' },
 			}),
 		)

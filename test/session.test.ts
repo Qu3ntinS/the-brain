@@ -11,7 +11,7 @@ describe('session', () => {
 
 	async function loginCookie() {
 		const login = await app.handle(
-			new Request('http://localhost/auth/login', {
+			new Request('http://localhost/api/auth/login', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
@@ -24,9 +24,9 @@ describe('session', () => {
 		return login.headers.get('set-cookie') ?? ''
 	}
 
-	it('blocks /refresh without a session', async () => {
+	it('blocks /api/auth/refresh without a session', async () => {
 		const response = await app.handle(
-			new Request('http://localhost/refresh', { method: 'POST' }),
+			new Request('http://localhost/api/auth/refresh', { method: 'POST' }),
 		)
 
 		expect(response.status).toBe(401)
@@ -36,7 +36,7 @@ describe('session', () => {
 		const cookie = await loginCookie()
 
 		const response = await app.handle(
-			new Request('http://localhost/refresh', {
+			new Request('http://localhost/api/auth/refresh', {
 				method: 'POST',
 				headers: { Cookie: cookie },
 			}),
