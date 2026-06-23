@@ -6,6 +6,9 @@ import NotFoundView from '@/views/NotFoundView.vue'
 import DashboardOverviewView from '@/views/dashboard/DashboardOverviewView.vue'
 import { authGuard, guestGuard } from './guards'
 
+const DashboardDocsView = () =>
+	import('@/views/dashboard/DashboardDocsView.vue')
+
 export const router = createRouter({
 	history: createWebHistory(),
 	routes: [
@@ -20,6 +23,12 @@ export const router = createRouter({
 					path: '',
 					name: 'dashboard',
 					component: DashboardOverviewView,
+				},
+				{
+					path: 'docs',
+					name: 'dashboard-docs',
+					component: DashboardDocsView,
+					meta: { fullBleed: true },
 				},
 			],
 		},

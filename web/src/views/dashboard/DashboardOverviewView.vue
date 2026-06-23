@@ -145,12 +145,12 @@ onMounted(() => {
 				<CardDescription>Jump into API tools and the public landing page.</CardDescription>
 			</CardHeader>
 			<CardContent class="flex flex-wrap gap-3">
-				<a
+				<RouterLink
 					class="inline-flex items-center rounded-md border border-brain-pink/30 bg-brain-pink/10 px-4 py-2 text-sm font-medium text-brain-pink transition hover:bg-brain-pink/20"
-					href="/api/docs"
+					to="/dashboard/docs"
 				>
 					Open API docs
-				</a>
+				</RouterLink>
 				<a
 					class="inline-flex items-center rounded-md border border-brain-teal/30 bg-brain-teal/10 px-4 py-2 text-sm font-medium text-brain-teal transition hover:bg-brain-teal/20"
 					href="/api/health"

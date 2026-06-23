@@ -97,14 +97,18 @@ async function onLogout() {
 
 		<SidebarFooter>
 			<SidebarMenu>
-				<SidebarMenuItem>
-					<SidebarMenuButton as-child tooltip="API docs">
-						<a href="/api/docs">
-							<BookOpenIcon />
-							<span>API docs</span>
-						</a>
-					</SidebarMenuButton>
-				</SidebarMenuItem>
+						<SidebarMenuItem>
+							<SidebarMenuButton
+								as-child
+								tooltip="API docs"
+								:is-active="route.name === 'dashboard-docs'"
+							>
+								<RouterLink to="/dashboard/docs">
+									<BookOpenIcon />
+									<span>API docs</span>
+								</RouterLink>
+							</SidebarMenuButton>
+						</SidebarMenuItem>
 			</SidebarMenu>
 
 			<SidebarSeparator />

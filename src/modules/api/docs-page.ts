@@ -1,4 +1,5 @@
 import { ScalarRender } from '@elysiajs/openapi/scalar'
+import { brainScalarThemeCss } from '../../../shared/brain-scalar-theme'
 
 export const docsInfo = {
 	title: 'The Brain API',
@@ -27,6 +28,7 @@ export const renderDocsPage = () => {
 			version: 'latest',
 			cdn: scalarCdn,
 			favicon: '/assets/brain-logo.png',
+			customCss: brainScalarThemeCss,
 			authentication: {
 				preferredSecurityScheme: 'bearerAuth',
 			},
