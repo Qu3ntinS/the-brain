@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
+import BrainLogo from '@/components/BrainLogo.vue'
 import { sessionState } from '@/composables/useSession'
 
 const isAuthed = computed(() => !!sessionState.user)
-const logoUrl = '/assets/brain-logo.png'
 </script>
 
 <template>
@@ -15,23 +15,13 @@ const logoUrl = '/assets/brain-logo.png'
 			class="inline-flex animate-[float_4s_ease-in-out_infinite] items-center gap-2 rounded-full border border-brain-teal/35 bg-brain-surface/70 px-3.5 py-1.5 text-xs uppercase tracking-[0.08em] text-brain-teal backdrop-blur-md"
 		>
 			<span
-				class="h-1.5 w-1.5 animate-pulse rounded-full bg-brain-teal shadow-[0_0_12px_var(--color-brain-teal)]"
+				class="size-1.5 animate-pulse rounded-full bg-brain-teal shadow-[0_0_12px_var(--color-brain-teal)]"
 			/>
 			personal api · central hub
 		</div>
 
 		<main class="flex flex-1 flex-col items-center justify-center gap-6 py-8 text-center">
-			<div
-				class="mb-1 h-[min(280px,52vw)] w-[min(280px,52vw)] animate-[logo-idle_4s_ease-in-out_infinite] drop-shadow-[0_0_32px_rgba(255,107,203,0.4)] motion-reduce:animate-none"
-			>
-				<img
-					class="h-full w-full object-contain"
-					:src="logoUrl"
-					alt="The Brain mascot"
-					width="280"
-					height="280"
-				/>
-			</div>
+			<BrainLogo />
 
 			<h1
 				class="font-display text-[clamp(3rem,12vw,6.5rem)] leading-[0.95] font-extrabold tracking-[-0.03em] text-transparent drop-shadow-[0_0_40px_rgba(255,107,203,0.25)] bg-gradient-to-br from-brain-text via-brain-pink to-brain-teal bg-clip-text"
@@ -79,16 +69,6 @@ const logoUrl = '/assets/brain-logo.png'
 	}
 	50% {
 		transform: translateY(-4px);
-	}
-}
-
-@keyframes logo-idle {
-	0%,
-	100% {
-		transform: translateY(0) scale(1);
-	}
-	50% {
-		transform: translateY(-8px) scale(1.025);
 	}
 }
 </style>

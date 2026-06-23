@@ -19,4 +19,19 @@ describe('HomeView', () => {
 		expect(wrapper.text()).toContain('everything')
 		expect(wrapper.text()).toContain('The Brain')
 	})
+
+	it('shows a skeleton while the mascot logo is loading', () => {
+		const router = createRouter({
+			history: createWebHistory(),
+			routes: [{ path: '/', component: HomeView }],
+		})
+
+		const wrapper = mount(HomeView, {
+			global: {
+				plugins: [router],
+			},
+		})
+
+		expect(wrapper.find('[data-slot="skeleton"]').exists()).toBe(true)
+	})
 })
