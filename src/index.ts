@@ -7,4 +7,4 @@ console.log(
 	`🧠 The Brain is running at http://${app.server?.hostname}:${app.server?.port}`,
 )
 
-export type { App } from './app'
+export type { App } from './export/app-type'

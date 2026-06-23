@@ -1,19 +1,21 @@
 import { Elysia } from 'elysia'
+import { clearSessionCookie } from '../../lib/auth-cookie'
 import { jwtAuth } from '../../plugins/jwt-auth'
-import { clearAuthCookie } from '../../lib/auth-cookie'
-import { AuthModel } from './model'
+import * as AuthModel from './model'
 import { AuthService } from './service'
 
 export const authModule = new Elysia({ prefix: '/auth', name: 'auth' })
+	.use(jwtAuth)
 	.model({
 		'auth.login': AuthModel.loginBody,
 		'auth.token': AuthModel.tokenResponse,
 		'auth.me': AuthModel.meResponse,
 		'auth.error': AuthModel.errorResponse,
+		'auth.ok': AuthModel.okResponse,
 	})
 	.post(
 		'/login',
-		async ({ body, jwt, set }) => {
+		async ({ body, jwt, cookie }) => {
 			const validated = AuthService.validateCredentials(body)
 			if ('code' in validated) return validated
 
@@ -22,7 +24,8 @@ export const authModule = new Elysia({ prefix: '/auth', name: 'auth' })
 				validated.username,
 			)
 
-			set.headers['Set-Cookie'] = AuthService.sessionCookie(
+			AuthService.applySessionCookie(
+				cookie.brain_token,
 				session.accessToken,
 			)
 
@@ -43,10 +46,11 @@ export const authModule = new Elysia({ prefix: '/auth', name: 'auth' })
 	)
 	.post(
 		'/refresh',
-		async ({ user, jwt, set }) => {
+		async ({ user, jwt, cookie }) => {
 			const session = await AuthService.issueSession(jwt, user.username)
 
-			set.headers['Set-Cookie'] = AuthService.sessionCookie(
+			AuthService.applySessionCookie(
+				cookie.brain_token,
 				session.accessToken,
 			)
 
@@ -87,12 +91,15 @@ export const authModule = new Elysia({ prefix: '/auth', name: 'auth' })
 	)
 	.post(
 		'/logout',
-		({ set }) => {
-			set.headers['Set-Cookie'] = clearAuthCookie()
+		({ cookie }) => {
+			clearSessionCookie(cookie.brain_token)
 
 			return { ok: true as const }
 		},
 		{
+			response: {
+				200: 'auth.ok',
+			},
 			detail: {
 				summary: 'Logout',
 				description: 'Clears the session cookie',

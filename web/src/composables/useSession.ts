@@ -1,13 +1,11 @@
 import type { App } from 'vue'
 import { computed, reactive } from 'vue'
+import { api } from '@/lib/api'
+import type { AuthUser } from '@brain/export/auth-type'
 
-export type AuthUser = {
-	id: string
-	username: string
-}
-
-const API = '/api'
 const REFRESH_MS = 60 * 60 * 1000
+
+export type { AuthUser }
 
 export const sessionState = reactive({
 	user: null as AuthUser | null,
@@ -15,36 +13,26 @@ export const sessionState = reactive({
 })
 
 export async function fetchMe(): Promise<AuthUser | null> {
-	const response = await fetch(`${API}/auth/me`, { credentials: 'include' })
+	const { data, error } = await api.api.auth.me.get()
 
-	if (!response.ok) {
+	if (error || !data) {
 		sessionState.user = null
 		return null
 	}
 
-	const user = (await response.json()) as AuthUser
-	sessionState.user = user
-	return user
+	sessionState.user = data
+	return data
 }
 
 export async function refreshSession(): Promise<boolean> {
-	const response = await fetch(`${API}/auth/refresh`, {
-		method: 'POST',
-		credentials: 'include',
-	})
-
-	return response.ok
+	const { error } = await api.api.auth.refresh.post()
+	return !error
 }
 
 export async function login(username: string, password: string): Promise<boolean> {
-	const response = await fetch(`${API}/auth/login`, {
-		method: 'POST',
-		credentials: 'include',
-		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({ username, password }),
-	})
+	const { error } = await api.api.auth.login.post({ username, password })
 
-	if (!response.ok) return false
+	if (error) return false
 
 	await refreshSession()
 	await fetchMe()

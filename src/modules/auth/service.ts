@@ -1,14 +1,15 @@
 import { status } from 'elysia'
 import { env } from '../../config/env'
-import { buildAuthCookie } from '../../lib/auth-cookie'
-import type { AuthModel } from './model'
+import type { SessionCookie } from '../../lib/auth-cookie'
+import { setSessionCookie } from '../../lib/auth-cookie'
+import type { LoginBody, TokenResponse } from './model'
 
 type JwtSigner = {
 	sign: (payload: { sub: string; username: string }) => Promise<string>
 }
 
 export abstract class AuthService {
-	static validateCredentials(credentials: AuthModel.loginBody) {
+	static validateCredentials(credentials: LoginBody) {
 		if (
 			credentials.username !== env.adminUsername ||
 			credentials.password !== env.adminPassword
@@ -42,7 +43,7 @@ export abstract class AuthService {
 		}
 	}
 
-	static buildSessionResponse(accessToken: string): AuthModel.tokenResponse {
+	static buildSessionResponse(accessToken: string): TokenResponse {
 		return {
 			accessToken,
 			tokenType: 'Bearer',
@@ -50,7 +51,10 @@ export abstract class AuthService {
 		}
 	}
 
-	static sessionCookie(accessToken: string) {
-		return buildAuthCookie(accessToken, env.jwtExpiresIn)
+	static applySessionCookie(
+		cookie: SessionCookie,
+		accessToken: string,
+	) {
+		setSessionCookie(cookie, accessToken, env.jwtExpiresIn)
 	}
 }

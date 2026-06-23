@@ -1,42 +1,20 @@
 import { Elysia, t } from 'elysia'
 import { openapi } from '@elysiajs/openapi'
 import { jwtAuth } from '../../plugins/jwt-auth'
-import { resolveToken } from '../../lib/resolve-token'
+import { docsAuth } from '../../plugins/docs-auth'
 import { authModule } from '../auth'
 import { apiErrorHandler } from './error-page'
-
-const isDocsPath = (path: string) =>
-	path === '/api/docs' || path.startsWith('/api/docs/')
+import { docsInfo, renderDocsPage } from './docs-page'
 
 export const apiModule = new Elysia({ prefix: '/api', name: 'api' })
 	.use(jwtAuth)
-	.onBeforeHandle(async ({ path, bearer, jwt, request, set }) => {
-		if (!isDocsPath(path)) return
-
-		const auth = await resolveToken(
-			jwt,
-			bearer,
-			request.headers.get('cookie'),
-		)
-
-		if (!auth) {
-			set.status = 401
-			return {
-				error: 'Unauthorized',
-				message: 'Missing or invalid credentials',
-			}
-		}
-	})
+	.use(docsAuth)
 	.use(
 		openapi({
 			path: '/docs',
+			provider: null,
 			documentation: {
-				info: {
-					title: 'The Brain API',
-					version: '1.0.0',
-					description:
-						'Personal API hub — portfolio, side projects, and the lightweight glue.',
-				},
+				info: docsInfo,
 				tags: [
 					{ name: 'Auth', description: 'JWT authentication' },
 					{ name: 'System', description: 'Health & utilities' },
@@ -56,8 +34,18 @@ export const apiModule = new Elysia({ prefix: '/api', name: 'api' })
 					preferredSecurityScheme: 'bearerAuth',
 				},
 			},
+			exclude: {
+				paths: ['/assets/*'],
+			},
 		}),
 	)
+	.get('/docs', () => new Response(renderDocsPage(), {
+		headers: {
+			'content-type': 'text/html; charset=utf-8',
+		},
+	}), {
+		detail: { hide: true },
+	})
 	.use(authModule)
 	.get(
 		'/health',

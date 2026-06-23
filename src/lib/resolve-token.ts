@@ -1,15 +1,8 @@
-import { parseCookieToken } from './auth-cookie'
-
 type JwtLike = {
 	verify: (token: string) => Promise<unknown>
 }
 
-export async function resolveToken(
-	jwt: JwtLike,
-	bearer: string | undefined | null,
-	cookieHeader: string | null,
-) {
-	const token = bearer ?? parseCookieToken(cookieHeader)
+export async function resolveToken(jwt: JwtLike, token: string | null | undefined) {
 	if (!token) return null
 
 	const payload = await jwt.verify(token)

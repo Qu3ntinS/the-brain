@@ -46,6 +46,42 @@ describe('docs', () => {
 
 		expect(response.status).toBe(200)
 		expect(response.headers.get('content-type')).toContain('text/html')
+
+		const html = await response.text()
+		expect(html).toContain('rel="icon"')
+		expect(html).toContain('/assets/brain-logo.png')
+	})
+
+	it('only documents API routes', async () => {
+		const login = await app.handle(
+			new Request('http://localhost/api/auth/login', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					username: 'admin',
+					password: 'test-password',
+				}),
+			}),
+		)
+		const { accessToken } = await login.json()
+
+		const response = await app.handle(
+			new Request('http://localhost/api/docs/json', {
+				headers: { Authorization: `Bearer ${accessToken}` },
+			}),
+		)
+
+		const spec = await response.json()
+		const paths = Object.keys(spec.paths).sort()
+
+		expect(paths).toEqual([
+			'/api/auth/login',
+			'/api/auth/logout',
+			'/api/auth/me',
+			'/api/auth/refresh',
+			'/api/health',
+			'/api/ping',
+		])
 	})
 
 	it('allows /api/docs with a session cookie', async () => {

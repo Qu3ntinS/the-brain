@@ -1,17 +1,6 @@
+import type { Cookie } from 'elysia'
+
 export const AUTH_COOKIE = 'brain_token'
-
-export function parseCookieToken(cookieHeader: string | null): string | null {
-	if (!cookieHeader) return null
-
-	for (const part of cookieHeader.split(';')) {
-		const [name, ...rest] = part.trim().split('=')
-		if (name === AUTH_COOKIE) {
-			return decodeURIComponent(rest.join('='))
-		}
-	}
-
-	return null
-}
 
 export function expiresInSeconds(expiresIn: string): number {
 	const match = expiresIn.match(/^(\d+)([smhd])$/)
@@ -34,17 +23,23 @@ export function expiresInSeconds(expiresIn: string): number {
 	}
 }
 
-export function buildAuthCookie(token: string, expiresIn: string): string {
-	const maxAge = expiresInSeconds(expiresIn)
-	const secure =
-		process.env.NODE_ENV === 'production' ? '; Secure' : ''
+export type SessionCookie = Cookie<string | undefined> | Cookie<unknown>
 
-	return `${AUTH_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${secure}`
+export function setSessionCookie(
+	cookie: SessionCookie,
+	token: string,
+	expiresIn: string,
+) {
+	cookie.set({
+		value: token,
+		httpOnly: true,
+		sameSite: 'lax',
+		path: '/',
+		maxAge: expiresInSeconds(expiresIn),
+		secure: process.env.NODE_ENV === 'production',
+	})
 }
 
-export function clearAuthCookie(): string {
-	const secure =
-		process.env.NODE_ENV === 'production' ? '; Secure' : ''
-
-	return `${AUTH_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secure}`
+export function clearSessionCookie(cookie: SessionCookie) {
+	cookie.remove()
 }
