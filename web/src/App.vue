@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
+import 'vue-sonner/style.css'
+import '@shared/brain-sonner-theme.css'
 import SynapseBackground from '@/components/SynapseBackground.vue'
 import { Toaster } from '@/components/ui/sonner'
 
@@ -17,6 +19,6 @@ const showLandingFx = computed(() => !route.meta.dashboard)
 			<SynapseBackground />
 		</template>
 		<RouterView />
-		<Toaster position="top-right" rich-colors close-button />
+		<Toaster />
 	</div>
 </template>

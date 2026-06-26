@@ -1,15 +1,11 @@
 import { toast } from 'vue-sonner'
 
-const toastOptions = {
-	position: 'top-right' as const,
-}
-
 export function toastError(message: string) {
-	toast.error(message, toastOptions)
+	toast.error(message)
 }
 
 export function toastSuccess(message: string) {
-	toast.success(message, toastOptions)
+	toast.success(message)
 }
 
 export function toastErrorFrom(error: unknown, fallback: string) {

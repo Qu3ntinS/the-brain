@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test'
+import { TEST_ADMIN_DISPLAY_NAME } from './test-data'
 
 const { createApp } = await import('../src/app')
 
@@ -103,14 +104,14 @@ describe('users', () => {
 					Authorization: `Bearer ${token}`,
 				},
 				body: JSON.stringify({
-					displayName: 'Brain Admin',
+					displayName: TEST_ADMIN_DISPLAY_NAME,
 				}),
 			}),
 		)
 
 		expect(response.status).toBe(200)
 		const body = await response.json()
-		expect(body.displayName).toBe('Brain Admin')
+		expect(body.displayName).toBe(TEST_ADMIN_DISPLAY_NAME)
 		expect(body.role).toBe('admin')
 	})
 })

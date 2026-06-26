@@ -4,6 +4,7 @@ import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { env } from './config/env'
 import { apiModule } from './modules/api'
+import { bindOpenApiApp } from './modules/api/openapi-spec'
 import { spaModule } from './modules/spa'
 import { apiNotFoundHandler } from './modules/api/error-page'
 import { database } from './plugins/database'
@@ -25,8 +26,8 @@ const serveSpaShell = (set: {
 	return Bun.file(webIndex)
 }
 
-export const createApp = () =>
-	new Elysia()
+export const createApp = () => {
+	const app = new Elysia()
 		.use(database)
 		.use(
 			cors({
@@ -67,5 +68,10 @@ export const createApp = () =>
 		.get('/dashboard', ({ set }) => serveSpaShell(set), {
 			detail: { hide: true },
 		})
+
+	bindOpenApiApp(app)
+
+	return app
+}
 
 export type App = ReturnType<typeof createApp>

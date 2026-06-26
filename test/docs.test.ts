@@ -2,8 +2,68 @@ import { describe, expect, it } from 'bun:test'
 
 const { createApp } = await import('../src/app')
 
+const adminPaths = [
+	'/api/auth/login',
+	'/api/auth/logout',
+	'/api/auth/me',
+	'/api/auth/me/avatar',
+	'/api/auth/refresh',
+	'/api/health',
+	'/api/ping',
+	'/api/users/',
+	'/api/users/{id}',
+	'/uploads/*',
+]
+
+const userPaths = [
+	'/api/auth/login',
+	'/api/auth/logout',
+	'/api/auth/me',
+	'/api/auth/me/avatar',
+	'/api/auth/refresh',
+	'/api/health',
+	'/api/ping',
+	'/uploads/*',
+]
+
 describe('docs', () => {
 	const app = createApp()
+
+	async function login(username: string, password: string) {
+		const response = await app.handle(
+			new Request('http://localhost/api/auth/login', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ username, password }),
+			}),
+		)
+
+		expect(response.status).toBe(200)
+
+		const body = await response.json()
+		return body.accessToken as string
+	}
+
+	async function createRegularUser() {
+		const adminToken = await login('admin', 'test-password')
+
+		const response = await app.handle(
+			new Request('http://localhost/api/users', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${adminToken}`,
+				},
+				body: JSON.stringify({
+					username: 'docs-user',
+					password: 'test-password-123',
+					role: 'user',
+				}),
+			}),
+		)
+
+		expect(response.status).toBe(200)
+	}
 
 	it('blocks /api/docs without a token', async () => {
 		const response = await app.handle(
@@ -22,17 +82,7 @@ describe('docs', () => {
 	})
 
 	it('allows /api/docs with a valid token', async () => {
-		const login = await app.handle(
-			new Request('http://localhost/api/auth/login', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					username: 'admin',
-					password: 'test-password',
-				}),
-			}),
-		)
-		const { accessToken } = await login.json()
+		const accessToken = await login('admin', 'test-password')
 
 		const response = await app.handle(
 			new Request('http://localhost/api/docs', {
@@ -48,18 +98,8 @@ describe('docs', () => {
 		expect(html).toContain('/assets/brain-logo.png')
 	})
 
-	it('only documents API routes', async () => {
-		const login = await app.handle(
-			new Request('http://localhost/api/auth/login', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					username: 'admin',
-					password: 'test-password',
-				}),
-			}),
-		)
-		const { accessToken } = await login.json()
+	it('shows all API routes to admins', async () => {
+		const accessToken = await login('admin', 'test-password')
 
 		const response = await app.handle(
 			new Request('http://localhost/api/docs/json', {
@@ -70,22 +110,32 @@ describe('docs', () => {
 		const spec = await response.json()
 		const paths = Object.keys(spec.paths).sort()
 
-		expect(paths).toEqual([
-			'/api/auth/login',
-			'/api/auth/logout',
-			'/api/auth/me',
-			'/api/auth/me/avatar',
-			'/api/auth/refresh',
-			'/api/health',
-			'/api/ping',
-			'/api/users/',
-			'/api/users/{id}',
-			'/uploads/*',
-		])
+		expect(paths).toEqual(adminPaths)
+	})
+
+	it('hides admin routes from regular users', async () => {
+		await createRegularUser()
+		const accessToken = await login('docs-user', 'test-password-123')
+
+		const response = await app.handle(
+			new Request('http://localhost/api/docs/json', {
+				headers: { Authorization: `Bearer ${accessToken}` },
+			}),
+		)
+
+		expect(response.status).toBe(200)
+
+		const spec = await response.json()
+		const paths = Object.keys(spec.paths).sort()
+
+		expect(paths).toEqual(userPaths)
+		expect(spec.tags?.map((tag: { name: string }) => tag.name)).not.toContain(
+			'Users',
+		)
 	})
 
 	it('allows /api/docs with a session cookie', async () => {
-		const login = await app.handle(
+		const loginResponse = await app.handle(
 			new Request('http://localhost/api/auth/login', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
@@ -95,7 +145,7 @@ describe('docs', () => {
 				}),
 			}),
 		)
-		const cookie = login.headers.get('set-cookie')
+		const cookie = loginResponse.headers.get('set-cookie')
 
 		expect(cookie).toContain('brain_token=')
 

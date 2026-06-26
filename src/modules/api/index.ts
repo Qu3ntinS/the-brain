@@ -1,12 +1,15 @@
 import { Elysia, t } from 'elysia'
 import { openapi } from '@elysiajs/openapi'
 import { checkDatabase } from '../../database/client'
-import { jwtAuth } from '../../plugins/jwt-auth'
+import { jwtAuth, assertAuthenticated } from '../../plugins/jwt-auth'
 import { docsAuth } from '../../plugins/docs-auth'
+import { UsersService } from '../users/service'
 import { authModule } from '../auth'
 import { usersModule } from '../users'
 import { apiErrorHandler } from './error-page'
-import { docsInfo, renderDocsPage } from './docs-page'
+import { renderDocsPage } from './docs-page'
+import { openApiDocumentation, openApiExclude } from './openapi-config'
+import { getOpenApiSpecForRole } from './openapi-spec'
 
 export const apiModule = new Elysia({ prefix: '/api', name: 'api' })
 	.use(jwtAuth)
@@ -15,30 +18,12 @@ export const apiModule = new Elysia({ prefix: '/api', name: 'api' })
 		openapi({
 			path: '/docs',
 			provider: null,
-			documentation: {
-				info: docsInfo,
-				tags: [
-					{ name: 'Auth', description: 'JWT authentication' },
-					{ name: 'Users', description: 'User management' },
-					{ name: 'System', description: 'Health & utilities' },
-				],
-				components: {
-					securitySchemes: {
-						bearerAuth: {
-							type: 'http',
-							scheme: 'bearer',
-							bearerFormat: 'JWT',
-						},
-					},
-				},
-			},
+			documentation: openApiDocumentation,
+			exclude: openApiExclude,
 			scalar: {
 				authentication: {
 					preferredSecurityScheme: 'bearerAuth',
 				},
-			},
-			exclude: {
-				paths: ['/assets/*'],
 			},
 		}),
 	)
@@ -49,6 +34,22 @@ export const apiModule = new Elysia({ prefix: '/api', name: 'api' })
 	}), {
 		detail: { hide: true },
 	})
+	.get(
+		'/docs/json',
+		async ({ bearer, jwt, cookie, status }) => {
+			const auth = await assertAuthenticated({ bearer, jwt, cookie, status })
+
+			if ('code' in auth) return auth
+
+			const record = await UsersService.getRecordById(auth.user.id)
+			const role = record?.role === 'admin' ? 'admin' : 'user'
+
+			return getOpenApiSpecForRole(role)
+		},
+		{
+			detail: { hide: true },
+		},
+	)
 	.use(authModule)
 	.use(usersModule)
 	.get(
