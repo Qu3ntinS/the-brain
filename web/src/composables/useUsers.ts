@@ -1,13 +1,15 @@
 import { api } from '@/lib/api'
 import { readApiError } from '@/lib/api-error'
 import { fetchMe, sessionState } from '@/composables/useSession'
+import type { AuthUser } from '@brain/export/auth-type'
 
 export type ManagedUser = {
 	id: string
 	username: string
 	displayName: string | null
 	avatarUrl: string | null
-	role: 'admin' | 'user'
+	role: string
+	roles: string[]
 	createdAt: string
 	updatedAt: string
 }
@@ -16,7 +18,7 @@ export type UserFormInput = {
 	username: string
 	password: string
 	displayName: string
-	role: 'admin' | 'user'
+	roles: string[]
 }
 
 export async function listUsers(): Promise<ManagedUser[]> {
@@ -26,23 +28,17 @@ export async function listUsers(): Promise<ManagedUser[]> {
 		throw new Error(readApiError(error, data, 'Could not load users'))
 	}
 
-	return data.users
+	return (data as unknown as { users: ManagedUser[] }).users
 }
-
-const normalizeRole = (
-	role: UserFormInput['role'] | undefined,
-): 'admin' | 'user' | undefined =>
-	role === 'admin' || role === 'user' ? role : undefined
 
 export async function createUser(input: UserFormInput): Promise<ManagedUser> {
 	const displayName = input.displayName.trim()
-	const role = normalizeRole(input.role)
 
 	const { data, error } = await api.api.users.post({
 		username: input.username.trim(),
 		password: input.password,
 		...(displayName ? { displayName } : {}),
-		...(role ? { role } : {}),
+		roles: input.roles,
 	})
 
 	if (error || !data || 'error' in data) {
@@ -60,7 +56,7 @@ export async function updateUser(
 		username?: string
 		password?: string
 		displayName?: string | null
-		role?: 'admin' | 'user'
+		roles?: string[]
 	} = {}
 
 	if (input.username !== undefined) body.username = input.username.trim()
@@ -68,9 +64,7 @@ export async function updateUser(
 	if (input.displayName !== undefined) {
 		body.displayName = input.displayName === '' ? null : input.displayName
 	}
-
-	const role = normalizeRole(input.role)
-	if (role) body.role = role
+	if (input.roles !== undefined) body.roles = input.roles
 
 	const { data, error } = await api.api.users({ id }).patch(body)
 
@@ -146,12 +140,14 @@ export async function reloadProfile(): Promise<ManagedUser | null> {
 	return user as ManagedUser | null
 }
 
-function applySessionUser(data: ManagedUser) {
+function applySessionUser(data: ManagedUser & { permissions?: string[] }) {
 	sessionState.user = {
 		id: data.id,
 		username: data.username,
 		displayName: data.displayName,
 		avatarUrl: data.avatarUrl,
 		role: data.role,
+		roles: data.roles,
+		permissions: data.permissions as AuthUser['permissions'],
 	}
 }

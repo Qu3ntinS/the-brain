@@ -1,5 +1,5 @@
-import type { UserRole } from '../lib/user-role'
-import { isUserRole } from '../lib/user-role'
+import type { PermissionSlug } from '../lib/auth/permissions'
+import { pickPrimaryRole } from '../lib/auth/authorization'
 
 type JwtLike = {
 	verify: (token: string) => Promise<unknown>
@@ -16,9 +16,9 @@ export async function resolveToken(jwt: JwtLike, token: string | null | undefine
 	if (typeof record.username !== 'string') return null
 
 	const role =
-		typeof record.role === 'string' && isUserRole(record.role)
+		typeof record.role === 'string' && record.role.length > 0
 			? record.role
-			: 'user'
+			: pickPrimaryRole([])
 
 	const displayName =
 		record.displayName === null || typeof record.displayName === 'string'
@@ -37,7 +37,7 @@ export async function resolveToken(jwt: JwtLike, token: string | null | undefine
 			username: record.username,
 			displayName,
 			avatarUrl,
-			role: role as UserRole,
+			role,
 		},
 	}
 }

@@ -1,4 +1,5 @@
 import { Elysia, t } from 'elysia'
+import { PERMISSIONS } from '../../lib/auth/permissions'
 import { errors } from '../../lib/http-errors'
 import { jwtAuth } from '../../plugins/jwt-auth'
 import * as UsersModel from './model'
@@ -20,7 +21,7 @@ export const usersModule = new Elysia({ prefix: '/users', name: 'users' })
 			users: await UsersService.list(),
 		}),
 		{
-			isAdmin: true,
+			requirePermission: PERMISSIONS.USERS_READ,
 			response: {
 				200: 'users.list',
 				401: 'users.error',
@@ -29,6 +30,7 @@ export const usersModule = new Elysia({ prefix: '/users', name: 'users' })
 			detail: {
 				summary: 'List users',
 				tags: ['Users'],
+				permission: PERMISSIONS.USERS_READ,
 				security: [{ bearerAuth: [] }],
 			},
 		},
@@ -45,7 +47,7 @@ export const usersModule = new Elysia({ prefix: '/users', name: 'users' })
 			return user
 		},
 		{
-			isAdmin: true,
+			requirePermission: PERMISSIONS.USERS_READ,
 			params: t.Object({
 				id: t.String(),
 			}),
@@ -58,6 +60,7 @@ export const usersModule = new Elysia({ prefix: '/users', name: 'users' })
 			detail: {
 				summary: 'Get user',
 				tags: ['Users'],
+				permission: PERMISSIONS.USERS_READ,
 				security: [{ bearerAuth: [] }],
 			},
 		},
@@ -66,7 +69,7 @@ export const usersModule = new Elysia({ prefix: '/users', name: 'users' })
 		'/',
 		async ({ body }) => UsersService.create(body),
 		{
-			isAdmin: true,
+			requirePermission: PERMISSIONS.USERS_WRITE,
 			body: 'users.create',
 			response: {
 				200: 'users.public',
@@ -77,6 +80,7 @@ export const usersModule = new Elysia({ prefix: '/users', name: 'users' })
 			detail: {
 				summary: 'Create user',
 				tags: ['Users'],
+				permission: PERMISSIONS.USERS_WRITE,
 				security: [{ bearerAuth: [] }],
 			},
 		},
@@ -86,7 +90,7 @@ export const usersModule = new Elysia({ prefix: '/users', name: 'users' })
 		async ({ params: { id }, body, user }) =>
 			UsersService.update(id, body, user.id),
 		{
-			isAdmin: true,
+			requirePermission: PERMISSIONS.USERS_WRITE,
 			params: t.Object({
 				id: t.String(),
 			}),
@@ -102,6 +106,7 @@ export const usersModule = new Elysia({ prefix: '/users', name: 'users' })
 			detail: {
 				summary: 'Update user',
 				tags: ['Users'],
+				permission: PERMISSIONS.USERS_WRITE,
 				security: [{ bearerAuth: [] }],
 			},
 		},
@@ -110,7 +115,7 @@ export const usersModule = new Elysia({ prefix: '/users', name: 'users' })
 		'/:id',
 		async ({ params: { id }, user }) => UsersService.remove(id, user.id),
 		{
-			isAdmin: true,
+			requirePermission: PERMISSIONS.USERS_WRITE,
 			params: t.Object({
 				id: t.String(),
 			}),
@@ -124,6 +129,7 @@ export const usersModule = new Elysia({ prefix: '/users', name: 'users' })
 			detail: {
 				summary: 'Delete user',
 				tags: ['Users'],
+				permission: PERMISSIONS.USERS_WRITE,
 				security: [{ bearerAuth: [] }],
 			},
 		},

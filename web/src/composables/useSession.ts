@@ -1,7 +1,7 @@
 import type { App } from 'vue'
 import { computed, reactive } from 'vue'
-import { api } from '@/lib/api'
 import type { AuthUser } from '@brain/export/auth-type'
+import { api } from '@/lib/api'
 
 const REFRESH_MS = 60 * 60 * 1000
 
@@ -38,12 +38,24 @@ export async function fetchMe(): Promise<AuthUser | null> {
 		return null
 	}
 
+	const profile = data as unknown as {
+		id: string
+		username: string
+		displayName: string | null
+		avatarUrl: string | null
+		role: string
+		roles?: string[]
+		permissions?: string[]
+	}
+
 	sessionState.user = {
-		id: data.id,
-		username: data.username,
-		displayName: data.displayName,
-		avatarUrl: data.avatarUrl,
-		role: data.role,
+		id: profile.id,
+		username: profile.username,
+		displayName: profile.displayName,
+		avatarUrl: profile.avatarUrl,
+		role: profile.role,
+		roles: profile.roles,
+		permissions: profile.permissions as AuthUser['permissions'],
 	}
 	return sessionState.user
 }

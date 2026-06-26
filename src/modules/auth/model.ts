@@ -1,6 +1,6 @@
 import { t } from 'elysia'
-import { userRoles } from '../../lib/user-role'
 import { errorResponse, okResponse } from '../../models/shared'
+import { roleSlugSchema, updateProfileBody } from '../users/model'
 
 export const loginBody = t.Object({
 	username: t.String({ minLength: 1 }),
@@ -18,12 +18,14 @@ export const meResponse = t.Object({
 	username: t.String(),
 	displayName: t.Union([t.String(), t.Null()]),
 	avatarUrl: t.Union([t.String(), t.Null()]),
-	role: t.Union(userRoles.map((role) => t.Literal(role))),
+	role: roleSlugSchema,
+	roles: t.Array(roleSlugSchema),
 	createdAt: t.String({ format: 'date-time' }),
 	updatedAt: t.String({ format: 'date-time' }),
+	permissions: t.Array(t.String()),
 })
 
-export { updateProfileBody } from '../users/model'
+export { updateProfileBody }
 
 export { errorResponse, okResponse }
 

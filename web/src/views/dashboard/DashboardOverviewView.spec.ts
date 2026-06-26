@@ -6,7 +6,7 @@ import { sessionState } from '@/composables/useSession'
 
 describe('DashboardOverviewView', () => {
 	it('renders overview heading', () => {
-		sessionState.user = { id: 'abc', username: 'admin' }
+		sessionState.user = { id: 'abc', username: 'admin', displayName: null, avatarUrl: null, role: 'admin' }
 		sessionState.ready = true
 
 		const router = createRouter({

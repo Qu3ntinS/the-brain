@@ -4,6 +4,7 @@ import { RouterLink, useRoute } from 'vue-router'
 import {
 	BookOpenIcon,
 	LayoutDashboardIcon,
+	ShieldIcon,
 	UsersIcon,
 } from '@lucide/vue'
 import {
@@ -21,10 +22,12 @@ import {
 	SidebarSeparator,
 } from '@/components/ui/sidebar'
 import UserAccountMenu from '@/components/dashboard/UserAccountMenu.vue'
-import { sessionState } from '@/composables/useSession'
+import { usePermissions } from '@/composables/usePermissions'
 
 const route = useRoute()
-const isAdmin = computed(() => sessionState.user?.role === 'admin')
+const { hasPermission } = usePermissions()
+const canManageUsers = computed(() => hasPermission('users:read'))
+const canManageRoles = computed(() => hasPermission('roles:read'))
 </script>
 
 <template>
@@ -79,7 +82,7 @@ const isAdmin = computed(() => sessionState.user?.role === 'admin')
 								</RouterLink>
 							</SidebarMenuButton>
 						</SidebarMenuItem>
-						<SidebarMenuItem v-if="isAdmin">
+						<SidebarMenuItem v-if="canManageUsers">
 							<SidebarMenuButton
 								as-child
 								tooltip="Users"
@@ -88,6 +91,18 @@ const isAdmin = computed(() => sessionState.user?.role === 'admin')
 								<RouterLink to="/dashboard/users">
 									<UsersIcon />
 									<span>Users</span>
+								</RouterLink>
+							</SidebarMenuButton>
+						</SidebarMenuItem>
+						<SidebarMenuItem v-if="canManageRoles">
+							<SidebarMenuButton
+								as-child
+								tooltip="Roles"
+								:is-active="route.name === 'dashboard-roles'"
+							>
+								<RouterLink to="/dashboard/roles">
+									<ShieldIcon />
+									<span>Roles</span>
 								</RouterLink>
 							</SidebarMenuButton>
 						</SidebarMenuItem>

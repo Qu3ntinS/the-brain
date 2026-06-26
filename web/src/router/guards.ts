@@ -14,12 +14,20 @@ export async function authGuard(to: RouteLocationNormalized) {
 	}
 }
 
-export async function adminGuard(to: RouteLocationNormalized) {
-	if (!to.meta.requiresAdmin) return true
+export async function permissionGuard(to: RouteLocationNormalized) {
+	const required = to.meta.requiresPermission
+
+	if (typeof required !== 'string') return true
 
 	await waitForSession()
 
-	if (sessionState.user?.role === 'admin') return true
+	if (
+		(sessionState.user?.permissions as readonly string[] | undefined)?.includes(
+			required,
+		)
+	) {
+		return true
+	}
 
 	return { name: 'dashboard' }
 }

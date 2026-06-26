@@ -3,8 +3,15 @@ import { env } from '../config/env'
 import { hashPassword, verifyPassword } from '../lib/password'
 import { db } from './client'
 import { users } from './schema'
+import {
+	ensureAdminUserRoles,
+	migrateLegacyUserRoles,
+	syncAccessCatalog,
+} from './seed-access'
 
 export const seedAdminUser = async () => {
+	await syncAccessCatalog()
+
 	const passwordHash = await hashPassword(env.adminPassword)
 
 	const [existing] = await db
@@ -15,7 +22,6 @@ export const seedAdminUser = async () => {
 
 	if (existing) {
 		const patch: Partial<typeof users.$inferInsert> = {
-			role: 'admin',
 			updatedAt: new Date(),
 		}
 
@@ -29,6 +35,9 @@ export const seedAdminUser = async () => {
 			.where(eq(users.username, env.adminUsername))
 			.returning()
 
+		await ensureAdminUserRoles((updated ?? existing).id)
+		await migrateLegacyUserRoles()
+
 		return updated ?? existing
 	}
 
@@ -37,11 +46,13 @@ export const seedAdminUser = async () => {
 		.values({
 			id: crypto.randomUUID(),
 			username: env.adminUsername,
-			role: 'admin',
 			passwordHash,
 			updatedAt: new Date(),
 		})
 		.returning()
+
+	await ensureAdminUserRoles(created!.id)
+	await migrateLegacyUserRoles()
 
 	return created
 }

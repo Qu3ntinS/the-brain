@@ -3,6 +3,12 @@ import { describe, expect, it } from 'bun:test'
 const { createApp } = await import('../src/app')
 
 const adminPaths = [
+	'/api/access/permissions',
+	'/api/access/roles',
+	'/api/access/roles/{id}',
+	'/api/access/users/{id}',
+	'/api/access/users/{id}/grants',
+	'/api/access/users/{id}/roles',
 	'/api/auth/login',
 	'/api/auth/logout',
 	'/api/auth/me',
@@ -131,6 +137,9 @@ describe('docs', () => {
 		expect(paths).toEqual(userPaths)
 		expect(spec.tags?.map((tag: { name: string }) => tag.name)).not.toContain(
 			'Users',
+		)
+		expect(spec.tags?.map((tag: { name: string }) => tag.name)).not.toContain(
+			'Access',
 		)
 	})
 

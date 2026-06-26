@@ -4,7 +4,7 @@ import HomeView from '@/views/HomeView.vue'
 import LoginView from '@/views/LoginView.vue'
 import NotFoundView from '@/views/NotFoundView.vue'
 import DashboardOverviewView from '@/views/dashboard/DashboardOverviewView.vue'
-import { adminGuard, authGuard, guestGuard } from './guards'
+import { authGuard, guestGuard, permissionGuard } from './guards'
 
 const DashboardDocsView = () =>
 	import('@/views/dashboard/DashboardDocsView.vue')
@@ -12,6 +12,8 @@ const DashboardProfileView = () =>
 	import('@/views/dashboard/DashboardProfileView.vue')
 const DashboardUsersView = () =>
 	import('@/views/dashboard/DashboardUsersView.vue')
+const DashboardRolesView = () =>
+	import('@/views/dashboard/DashboardRolesView.vue')
 
 export const router = createRouter({
 	history: createWebHistory(),
@@ -37,7 +39,13 @@ export const router = createRouter({
 					path: 'users',
 					name: 'dashboard-users',
 					component: DashboardUsersView,
-					meta: { requiresAdmin: true },
+					meta: { requiresPermission: 'users:read' },
+				},
+				{
+					path: 'roles',
+					name: 'dashboard-roles',
+					component: DashboardRolesView,
+					meta: { requiresPermission: 'roles:read' },
 				},
 				{
 					path: 'docs',
@@ -58,5 +66,14 @@ router.beforeEach(async (to) => {
 	const authRedirect = await authGuard(to)
 	if (authRedirect !== true) return authRedirect
 
-	return adminGuard(to)
+	return permissionGuard(to)
 })
+
+declare module 'vue-router' {
+	interface RouteMeta {
+		requiresAuth?: boolean
+		requiresPermission?: string
+		dashboard?: boolean
+		fullBleed?: boolean
+	}
+}

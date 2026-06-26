@@ -1,4 +1,5 @@
 import { Elysia, t } from 'elysia'
+import { AuthorizationService } from '../../lib/auth/authorization'
 import { clearSessionCookie } from '../../lib/auth-cookie'
 import { errors } from '../../lib/http-errors'
 import { jwtAuth } from '../../plugins/jwt-auth'
@@ -49,7 +50,7 @@ export const authModule = new Elysia({ prefix: '/auth', name: 'auth' })
 			return AuthService.establishSession(
 				jwt,
 				cookie.brain_token,
-				UsersService.toAuthUser(profile),
+				await UsersService.toAuthUser(profile),
 			)
 		},
 		{
@@ -76,7 +77,12 @@ export const authModule = new Elysia({ prefix: '/auth', name: 'auth' })
 				return errors.notFound('User not found')
 			}
 
-			return profile
+			const access = await AuthorizationService.resolveAccess(user.id)
+
+			return {
+				...profile,
+				permissions: access.permissions,
+			}
 		},
 		{
 			isAuth: true,
@@ -103,10 +109,15 @@ export const authModule = new Elysia({ prefix: '/auth', name: 'auth' })
 			await AuthService.reissueSession(
 				jwt,
 				cookie.brain_token,
-				UsersService.toAuthUser(updated),
+				await UsersService.toAuthUser(updated),
 			)
 
-			return updated
+			const access = await AuthorizationService.resolveAccess(user.id)
+
+			return {
+				...updated,
+				permissions: access.permissions,
+			}
 		},
 		{
 			isAuth: true,
@@ -136,10 +147,15 @@ export const authModule = new Elysia({ prefix: '/auth', name: 'auth' })
 			await AuthService.reissueSession(
 				jwt,
 				cookie.brain_token,
-				UsersService.toAuthUser(updated),
+				await UsersService.toAuthUser(updated),
 			)
 
-			return updated
+			const access = await AuthorizationService.resolveAccess(user.id)
+
+			return {
+				...updated,
+				permissions: access.permissions,
+			}
 		},
 		{
 			isAuth: true,
@@ -172,10 +188,15 @@ export const authModule = new Elysia({ prefix: '/auth', name: 'auth' })
 			await AuthService.reissueSession(
 				jwt,
 				cookie.brain_token,
-				UsersService.toAuthUser(updated),
+				await UsersService.toAuthUser(updated),
 			)
 
-			return updated
+			const access = await AuthorizationService.resolveAccess(user.id)
+
+			return {
+				...updated,
+				permissions: access.permissions,
+			}
 		},
 		{
 			isAuth: true,

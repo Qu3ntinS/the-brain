@@ -1,15 +1,16 @@
 import { Elysia, t } from 'elysia'
 import { openapi } from '@elysiajs/openapi'
 import { checkDatabase } from '../../database/client'
+import { AuthorizationService } from '../../lib/auth/authorization'
 import { jwtAuth, assertAuthenticated } from '../../plugins/jwt-auth'
 import { docsAuth } from '../../plugins/docs-auth'
-import { UsersService } from '../users/service'
+import { accessModule } from '../access'
 import { authModule } from '../auth'
 import { usersModule } from '../users'
 import { apiErrorHandler } from './error-page'
 import { renderDocsPage } from './docs-page'
 import { openApiDocumentation, openApiExclude } from './openapi-config'
-import { getOpenApiSpecForRole } from './openapi-spec'
+import { getOpenApiSpecForPermissions } from './openapi-spec'
 
 export const apiModule = new Elysia({ prefix: '/api', name: 'api' })
 	.use(jwtAuth)
@@ -41,10 +42,9 @@ export const apiModule = new Elysia({ prefix: '/api', name: 'api' })
 
 			if ('code' in auth) return auth
 
-			const record = await UsersService.getRecordById(auth.user.id)
-			const role = record?.role === 'admin' ? 'admin' : 'user'
+			const access = await AuthorizationService.resolveAccess(auth.user.id)
 
-			return getOpenApiSpecForRole(role)
+			return getOpenApiSpecForPermissions(access.permissions)
 		},
 		{
 			detail: { hide: true },
@@ -52,6 +52,7 @@ export const apiModule = new Elysia({ prefix: '/api', name: 'api' })
 	)
 	.use(authModule)
 	.use(usersModule)
+	.use(accessModule)
 	.get(
 		'/health',
 		async () => {

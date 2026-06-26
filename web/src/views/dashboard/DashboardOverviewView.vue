@@ -57,7 +57,7 @@ async function loadPing() {
 		return
 	}
 
-	ping.value = data
+	ping.value = data as unknown as { message: string; userId: string }
 }
 
 onMounted(() => {

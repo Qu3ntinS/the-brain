@@ -1,6 +1,15 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
-import { PencilIcon, PlusIcon, Trash2Icon, UsersIcon } from '@lucide/vue'
+import {
+	KeyRoundIcon,
+	PencilIcon,
+	PlusIcon,
+	Trash2Icon,
+	UsersIcon,
+} from '@lucide/vue'
+import UserAccessDialog from '@/components/dashboard/UserAccessDialog.vue'
+import { listRoles, type Role } from '@/composables/useAccess'
+import { usePermissions } from '@/composables/usePermissions'
 import {
 	createUser,
 	deleteUser,
@@ -10,7 +19,7 @@ import {
 	type UserFormInput,
 } from '@/composables/useUsers'
 import { sessionState } from '@/composables/useSession'
-import { toastError, toastErrorFrom } from '@/lib/toast'
+import { toastError, toastErrorFrom, toastSuccess } from '@/lib/toast'
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -23,6 +32,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
 	Card,
 	CardContent,
@@ -40,18 +50,14 @@ import {
 } from '@/components/ui/dialog'
 import {
 	Field,
+	FieldDescription,
 	FieldGroup,
 	FieldLabel,
+	FieldLegend,
+	FieldSet,
 } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import {
-	Select,
-	SelectContent,
-	SelectGroup,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
 	Table,
@@ -63,18 +69,27 @@ import {
 } from '@/components/ui/table'
 
 const users = ref<ManagedUser[]>([])
+const roles = ref<Role[]>([])
 const loading = ref(true)
 const dialogOpen = ref(false)
 const deleteOpen = ref(false)
+const accessOpen = ref(false)
 const saving = ref(false)
 const editingUser = ref<ManagedUser | null>(null)
 const deletingUser = ref<ManagedUser | null>(null)
+const accessUser = ref<ManagedUser | null>(null)
+
+const { hasPermission } = usePermissions()
+const canWrite = computed(() => hasPermission('users:write'))
+const canManageAccess = computed(
+	() => hasPermission('roles:read') || hasPermission('grants:write'),
+)
 
 const emptyForm = (): UserFormInput => ({
 	username: '',
 	password: '',
 	displayName: '',
-	role: 'user',
+	roles: ['user'],
 })
 
 const form = reactive<UserFormInput>(emptyForm())
@@ -91,15 +106,26 @@ function resetForm(user?: ManagedUser | null) {
 	if (user) {
 		form.username = user.username
 		form.displayName = user.displayName ?? ''
-		form.role = user.role
+		form.roles = [...user.roles]
 	}
+}
+
+function toggleFormRole(slug: string, checked: boolean) {
+	const next = new Set(form.roles)
+
+	if (checked) next.add(slug)
+	else next.delete(slug)
+
+	form.roles = [...next]
 }
 
 async function loadUsers() {
 	loading.value = true
 
 	try {
-		users.value = await listUsers()
+		const [userRows, roleRows] = await Promise.all([listUsers(), listRoles()])
+		users.value = userRows
+		roles.value = roleRows
 	} catch (err) {
 		toastErrorFrom(err, 'Could not load users.')
 	} finally {
@@ -124,6 +150,11 @@ function openDelete(user: ManagedUser) {
 	deleteOpen.value = true
 }
 
+function openAccess(user: ManagedUser) {
+	accessUser.value = user
+	accessOpen.value = true
+}
+
 function validateForm(): string | null {
 	const username = form.username.trim()
 
@@ -139,8 +170,8 @@ function validateForm(): string | null {
 		return 'New password must be at least 8 characters.'
 	}
 
-	if (form.role !== 'admin' && form.role !== 'user') {
-		return 'Please select a role.'
+	if (form.roles.length === 0) {
+		return 'Select at least one role.'
 	}
 
 	return null
@@ -158,8 +189,10 @@ async function onSave() {
 	try {
 		if (editingUser.value) {
 			await updateUser(editingUser.value.id, form)
+			toastSuccess('User updated.')
 		} else {
 			await createUser(form)
+			toastSuccess('User created.')
 		}
 
 		dialogOpen.value = false
@@ -178,6 +211,7 @@ async function onDelete() {
 
 	try {
 		await deleteUser(deletingUser.value.id)
+		toastSuccess('User deleted.')
 		deleteOpen.value = false
 		deletingUser.value = null
 		await loadUsers()
@@ -195,6 +229,10 @@ function formatDate(value: string) {
 	}).format(new Date(value))
 }
 
+function roleName(slug: string) {
+	return roles.value.find((role) => role.slug === slug)?.name ?? slug
+}
+
 onMounted(() => {
 	void loadUsers()
 })
@@ -209,7 +247,7 @@ onMounted(() => {
 					Create accounts, assign roles, and manage access.
 				</p>
 			</div>
-			<Button @click="openCreate">
+			<Button v-if="canWrite" @click="openCreate">
 				<PlusIcon data-icon="inline-start" />
 				Add user
 			</Button>
@@ -236,7 +274,7 @@ onMounted(() => {
 						<TableHeader>
 							<TableRow>
 								<TableHead>User</TableHead>
-								<TableHead>Role</TableHead>
+								<TableHead>Roles</TableHead>
 								<TableHead>Created</TableHead>
 								<TableHead class="text-right">Actions</TableHead>
 							</TableRow>
@@ -254,9 +292,16 @@ onMounted(() => {
 									</div>
 								</TableCell>
 								<TableCell>
-									<Badge variant="secondary" class="capitalize">
-										{{ user.role }}
-									</Badge>
+									<div class="flex flex-wrap gap-1">
+										<Badge
+											v-for="role in user.roles"
+											:key="role"
+											variant="secondary"
+											class="capitalize"
+										>
+											{{ roleName(role) }}
+										</Badge>
+									</div>
 								</TableCell>
 								<TableCell class="text-sm text-muted-foreground">
 									{{ formatDate(user.createdAt) }}
@@ -264,6 +309,16 @@ onMounted(() => {
 								<TableCell class="text-right">
 									<div class="flex justify-end gap-2">
 										<Button
+											v-if="canManageAccess"
+											variant="outline"
+											size="sm"
+											@click="openAccess(user)"
+										>
+											<KeyRoundIcon data-icon="inline-start" />
+											Access
+										</Button>
+										<Button
+											v-if="canWrite"
 											variant="outline"
 											size="sm"
 											@click="openEdit(user)"
@@ -272,6 +327,7 @@ onMounted(() => {
 											Edit
 										</Button>
 										<Button
+											v-if="canWrite"
 											variant="outline"
 											size="sm"
 											:disabled="user.id === currentUserId"
@@ -290,7 +346,7 @@ onMounted(() => {
 		</Card>
 
 		<Dialog v-model:open="dialogOpen">
-			<DialogContent>
+			<DialogContent class="max-h-[90vh] overflow-y-auto">
 				<DialogHeader>
 					<DialogTitle>{{ dialogTitle }}</DialogTitle>
 					<DialogDescription>
@@ -302,7 +358,7 @@ onMounted(() => {
 					</DialogDescription>
 				</DialogHeader>
 
-				<form @submit.prevent="onSave">
+				<form class="flex flex-col gap-6" @submit.prevent="onSave">
 					<FieldGroup>
 						<Field>
 							<FieldLabel for="username">Username</FieldLabel>
@@ -337,24 +393,33 @@ onMounted(() => {
 								minlength="8"
 							/>
 						</Field>
-						<Field>
-							<FieldLabel for="role">Role</FieldLabel>
-							<Select
-								v-model="form.role"
-								:key="editingUser?.id ?? 'create'"
-							>
-								<SelectTrigger id="role">
-									<SelectValue placeholder="Select role" />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectGroup>
-										<SelectItem value="user">User</SelectItem>
-										<SelectItem value="admin">Admin</SelectItem>
-									</SelectGroup>
-								</SelectContent>
-							</Select>
-						</Field>
 					</FieldGroup>
+
+					<FieldSet>
+						<FieldLegend>Roles</FieldLegend>
+						<FieldDescription>
+							Select one or more roles for this account.
+						</FieldDescription>
+						<div class="flex flex-col gap-3">
+							<Field
+								v-for="role in roles"
+								:key="role.slug"
+								orientation="horizontal"
+							>
+								<Checkbox
+									:id="`user-role-${role.slug}`"
+									:model-value="form.roles.includes(role.slug)"
+									@update:model-value="toggleFormRole(role.slug, $event === true)"
+								/>
+								<div class="flex flex-col gap-0.5">
+									<Label :for="`user-role-${role.slug}`">{{ role.name }}</Label>
+									<span class="text-xs text-muted-foreground">
+										{{ role.slug }}
+									</span>
+								</div>
+							</Field>
+						</div>
+					</FieldSet>
 
 					<DialogFooter>
 						<Button
@@ -371,6 +436,13 @@ onMounted(() => {
 				</form>
 			</DialogContent>
 		</Dialog>
+
+		<UserAccessDialog
+			v-model:open="accessOpen"
+			:user-id="accessUser?.id ?? null"
+			:username="accessUser?.username ?? null"
+			@saved="loadUsers"
+		/>
 
 		<AlertDialog v-model:open="deleteOpen">
 			<AlertDialogContent>

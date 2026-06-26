@@ -3,16 +3,19 @@ import { jwt } from '@elysiajs/jwt'
 import { bearer } from '@elysiajs/bearer'
 import { env } from '../config/env'
 import { AUTH_COOKIE } from '../lib/auth-cookie'
+import { AuthorizationService } from '../lib/auth/authorization'
+import {
+	PERMISSIONS,
+	type PermissionSlug,
+} from '../lib/auth/permissions'
 import { errors } from '../lib/http-errors'
 import { resolveToken } from '../lib/resolve-token'
-import type { UserRole } from '../lib/user-role'
-import { userRoles } from '../lib/user-role'
 import { UsersService } from '../modules/users/service'
 
 export type JwtPayload = {
 	sub: string
 	username: string
-	role: UserRole
+	role: string
 	displayName?: string | null
 }
 
@@ -21,7 +24,9 @@ export type AuthUser = {
 	username: string
 	displayName: string | null
 	avatarUrl: string | null
-	role: UserRole
+	role: string
+	roles?: string[]
+	permissions?: PermissionSlug[]
 }
 
 type AuthContext = {
@@ -59,25 +64,33 @@ export const assertAuthenticated = async (
 	return { user: auth.user satisfies AuthUser }
 }
 
-export const assertAdmin = async (
+export const assertPermission = async (
 	ctx: AuthContext & {
 		status: typeof import('elysia').status
 	},
+	permission: PermissionSlug,
 ) => {
 	const auth = await assertAuthenticated(ctx)
 
 	if ('code' in auth) return auth
 
-	const record = await UsersService.getRecordById(auth.user.id)
+	const allowed = await AuthorizationService.hasPermission(
+		auth.user.id,
+		permission,
+	)
 
-	if (!record || record.role !== 'admin') {
+	if (!allowed) {
 		return errors.forbidden()
 	}
 
-	return { user: UsersService.toAuthUser(record) }
-}
+	const record = await UsersService.getRecordById(auth.user.id)
 
-const roleSchema = t.Union(userRoles.map((role) => t.Literal(role)))
+	if (!record) {
+		return errors.unauthorized()
+	}
+
+	return { user: await UsersService.toAuthUser(record) }
+}
 
 export const jwtAuth = new Elysia({ name: 'jwt-auth' })
 	.use(
@@ -89,7 +102,7 @@ export const jwtAuth = new Elysia({ name: 'jwt-auth' })
 			schema: t.Object({
 				sub: t.String(),
 				username: t.String(),
-				role: roleSchema,
+				role: t.String(),
 				displayName: t.Optional(t.Union([t.String(), t.Null()])),
 				avatarUrl: t.Optional(t.Union([t.String(), t.Null()])),
 			}),
@@ -103,6 +116,13 @@ export const jwtAuth = new Elysia({ name: 'jwt-auth' })
 		},
 		isAdmin: {
 			resolve: ({ bearer, jwt, status, cookie }) =>
-				assertAdmin({ bearer, jwt, cookie, status }),
+				assertPermission(
+					{ bearer, jwt, cookie, status },
+					PERMISSIONS.USERS_WRITE,
+				),
 		},
+		requirePermission: (permission: PermissionSlug) => ({
+			resolve: ({ bearer, jwt, status, cookie }) =>
+				assertPermission({ bearer, jwt, cookie, status }, permission),
+		}),
 	})

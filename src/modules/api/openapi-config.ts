@@ -4,7 +4,8 @@ export const openApiDocumentation = {
 	info: docsInfo,
 	tags: [
 		{ name: 'Auth', description: 'JWT authentication' },
-		{ name: 'Users', description: 'User management (admin only)' },
+		{ name: 'Users', description: 'User management' },
+		{ name: 'Access', description: 'Roles, permissions, and user grants' },
 		{ name: 'System', description: 'Health & utilities' },
 	],
 	components: {

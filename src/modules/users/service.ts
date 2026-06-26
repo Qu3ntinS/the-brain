@@ -1,10 +1,18 @@
-import { asc, count, eq } from 'drizzle-orm'
+import { asc, eq } from 'drizzle-orm'
 import { db } from '../../database/client'
 import { users } from '../../database/schema'
+import {
+	AuthorizationService,
+	pickPrimaryRole,
+} from '../../lib/auth/authorization'
+import { assignUserRoles } from '../../lib/auth/role-assignment'
+import {
+	SYSTEM_ROLE_ADMIN,
+	SYSTEM_ROLE_USER,
+} from '../../lib/auth/permissions'
+import { deleteAvatarFile, saveAvatarFile } from '../../lib/avatar-storage'
 import { errors } from '../../lib/http-errors'
 import { hashPassword, verifyPassword } from '../../lib/password'
-import { deleteAvatarFile, saveAvatarFile } from '../../lib/avatar-storage'
-import type { UserRole } from '../../lib/user-role'
 import type {
 	CreateUserBody,
 	UpdateProfileBody,
@@ -14,18 +22,23 @@ import type {
 
 type DbUser = typeof users.$inferSelect
 
-const toPublicUser = (user: DbUser): UserPublic => ({
-	id: user.id,
-	username: user.username,
-	displayName: user.displayName,
-	avatarUrl: user.avatarUrl,
-	role: user.role,
-	createdAt: user.createdAt.toISOString(),
-	updatedAt: user.updatedAt.toISOString(),
-})
+const toPublicUser = async (user: DbUser): Promise<UserPublic> => {
+	const roles = await AuthorizationService.getUserRoleSlugs(user.id)
+
+	return {
+		id: user.id,
+		username: user.username,
+		displayName: user.displayName,
+		avatarUrl: user.avatarUrl,
+		role: pickPrimaryRole(roles),
+		roles,
+		createdAt: user.createdAt.toISOString(),
+		updatedAt: user.updatedAt.toISOString(),
+	}
+}
 
 export abstract class UsersService {
-	static toPublic(user: DbUser): UserPublic {
+	static async toPublic(user: DbUser): Promise<UserPublic> {
 		return toPublicUser(user)
 	}
 
@@ -35,7 +48,7 @@ export abstract class UsersService {
 			.from(users)
 			.orderBy(asc(users.createdAt))
 
-		return rows.map(toPublicUser)
+		return Promise.all(rows.map(toPublicUser))
 	}
 
 	static async getById(id: string) {
@@ -68,6 +81,11 @@ export abstract class UsersService {
 		}
 
 		const passwordHash = await hashPassword(body.password)
+		const roleSlugs = body.roles?.length
+			? body.roles
+			: body.role
+				? [body.role]
+				: [SYSTEM_ROLE_USER]
 
 		const [created] = await db
 			.insert(users)
@@ -75,11 +93,17 @@ export abstract class UsersService {
 				id: crypto.randomUUID(),
 				username: body.username,
 				displayName: body.displayName ?? null,
-				role: body.role ?? 'user',
 				passwordHash,
 				updatedAt: new Date(),
 			})
 			.returning()
+
+		const assigned = await assignUserRoles(created!.id, roleSlugs, created!.id)
+
+		if ('code' in assigned) {
+			await db.delete(users).where(eq(users.id, created!.id))
+			return assigned
+		}
 
 		return toPublicUser(created!)
 	}
@@ -99,14 +123,14 @@ export abstract class UsersService {
 			}
 		}
 
-		if (body.role && body.role !== user.role) {
-			const demoteCheck = await UsersService.ensureAdminRemains(user, body.role)
+		const nextRoles =
+			body.roles ??
+			(body.role !== undefined ? [body.role] : undefined)
 
-			if ('code' in demoteCheck) return demoteCheck
-		}
+		if (nextRoles) {
+			const roleUpdate = await assignUserRoles(id, nextRoles, actorId)
 
-		if (id === actorId && body.role && body.role !== 'admin') {
-			return errors.badRequest('You cannot remove your own admin role')
+			if ('code' in roleUpdate) return roleUpdate
 		}
 
 		const patch: Partial<DbUser> = {
@@ -115,7 +139,6 @@ export abstract class UsersService {
 
 		if (body.username !== undefined) patch.username = body.username
 		if (body.displayName !== undefined) patch.displayName = body.displayName
-		if (body.role !== undefined) patch.role = body.role
 		if (body.password) patch.passwordHash = await hashPassword(body.password)
 
 		const [updated] = await db
@@ -138,10 +161,14 @@ export abstract class UsersService {
 			return errors.notFound('User not found')
 		}
 
-		if (user.role === 'admin') {
-			const adminCheck = await UsersService.ensureAdminRemains(user, 'user')
+		if (await AuthorizationService.userHasRole(id, SYSTEM_ROLE_ADMIN)) {
+			const adminCount = await AuthorizationService.countUsersWithRole(
+				SYSTEM_ROLE_ADMIN,
+			)
 
-			if ('code' in adminCheck) return adminCheck
+			if (adminCount <= 1) {
+				return errors.badRequest('At least one admin account must remain')
+			}
 		}
 
 		await db.delete(users).where(eq(users.id, id))
@@ -184,13 +211,18 @@ export abstract class UsersService {
 		return toPublicUser(updated!)
 	}
 
-	static toAuthUser(user: DbUser | UserPublic) {
+	static async toAuthUser(user: DbUser | UserPublic) {
+		const roles =
+			'roles' in user && Array.isArray(user.roles)
+				? user.roles
+				: await AuthorizationService.getUserRoleSlugs(user.id)
+
 		return {
 			id: user.id,
 			username: user.username,
 			displayName: user.displayName,
 			avatarUrl: user.avatarUrl,
-			role: user.role as UserRole,
+			role: pickPrimaryRole(roles),
 		}
 	}
 
@@ -234,22 +266,5 @@ export abstract class UsersService {
 			.returning()
 
 		return toPublicUser(updated!)
-	}
-
-	private static async ensureAdminRemains(user: DbUser, nextRole: UserRole) {
-		if (user.role !== 'admin' || nextRole === 'admin') {
-			return { ok: true as const }
-		}
-
-		const [result] = await db
-			.select({ total: count() })
-			.from(users)
-			.where(eq(users.role, 'admin'))
-
-		if ((result?.total ?? 0) <= 1) {
-			return errors.badRequest('At least one admin account must remain')
-		}
-
-		return { ok: true as const }
 	}
 }

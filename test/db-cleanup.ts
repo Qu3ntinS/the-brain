@@ -1,8 +1,12 @@
 import { eq, inArray } from 'drizzle-orm'
 import { db } from '../src/database/client'
-import { users } from '../src/database/schema'
+import { roles, users } from '../src/database/schema'
 import { deleteAvatarFile } from '../src/lib/avatar-storage'
-import { TEST_ADMIN_DISPLAY_NAME, TEST_USERNAMES } from './test-data'
+import {
+	TEST_ADMIN_DISPLAY_NAME,
+	TEST_ROLE_SLUGS,
+	TEST_USERNAMES,
+} from './test-data'
 
 export const cleanupTestDatabase = async () => {
 	const testUsers = await db
@@ -19,6 +23,8 @@ export const cleanupTestDatabase = async () => {
 			.delete(users)
 			.where(inArray(users.username, [...TEST_USERNAMES]))
 	}
+
+	await db.delete(roles).where(inArray(roles.slug, [...TEST_ROLE_SLUGS]))
 
 	const adminUsername = process.env.ADMIN_USERNAME ?? 'admin'
 	const [admin] = await db

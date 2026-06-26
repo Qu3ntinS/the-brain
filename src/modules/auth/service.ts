@@ -36,7 +36,7 @@ export abstract class AuthService {
 			return errors.invalidCredentials()
 		}
 
-		return UsersService.toAuthUser(user)
+		return await UsersService.toAuthUser(user)
 	}
 
 	static async issueSession(jwt: JwtSigner, user: AuthUserRecord) {
