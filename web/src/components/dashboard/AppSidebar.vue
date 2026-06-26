@@ -1,13 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { RouterLink, useRoute } from 'vue-router'
 import {
 	BookOpenIcon,
 	LayoutDashboardIcon,
-	LogOutIcon,
+	UsersIcon,
 } from '@lucide/vue'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
 import {
 	Sidebar,
 	SidebarContent,
@@ -22,20 +20,11 @@ import {
 	SidebarRail,
 	SidebarSeparator,
 } from '@/components/ui/sidebar'
-import { logout, sessionState } from '@/composables/useSession'
+import UserAccountMenu from '@/components/dashboard/UserAccountMenu.vue'
+import { sessionState } from '@/composables/useSession'
 
 const route = useRoute()
-const router = useRouter()
-
-const user = computed(() => sessionState.user)
-const initials = computed(() =>
-	(user.value?.username ?? '?').slice(0, 2).toUpperCase(),
-)
-
-async function onLogout() {
-	await logout()
-	await router.push('/login')
-}
+const isAdmin = computed(() => sessionState.user?.role === 'admin')
 </script>
 
 <template>
@@ -90,6 +79,18 @@ async function onLogout() {
 								</RouterLink>
 							</SidebarMenuButton>
 						</SidebarMenuItem>
+						<SidebarMenuItem v-if="isAdmin">
+							<SidebarMenuButton
+								as-child
+								tooltip="Users"
+								:is-active="route.name === 'dashboard-users'"
+							>
+								<RouterLink to="/dashboard/users">
+									<UsersIcon />
+									<span>Users</span>
+								</RouterLink>
+							</SidebarMenuButton>
+						</SidebarMenuItem>
 					</SidebarMenu>
 				</SidebarGroupContent>
 			</SidebarGroup>
@@ -97,49 +98,23 @@ async function onLogout() {
 
 		<SidebarFooter>
 			<SidebarMenu>
-						<SidebarMenuItem>
-							<SidebarMenuButton
-								as-child
-								tooltip="API docs"
-								:is-active="route.name === 'dashboard-docs'"
-							>
-								<RouterLink to="/dashboard/docs">
-									<BookOpenIcon />
-									<span>API docs</span>
-								</RouterLink>
-							</SidebarMenuButton>
-						</SidebarMenuItem>
+				<SidebarMenuItem>
+					<SidebarMenuButton
+						as-child
+						tooltip="API docs"
+						:is-active="route.name === 'dashboard-docs'"
+					>
+						<RouterLink to="/dashboard/docs">
+							<BookOpenIcon />
+							<span>API docs</span>
+						</RouterLink>
+					</SidebarMenuButton>
+				</SidebarMenuItem>
 			</SidebarMenu>
 
 			<SidebarSeparator />
 
-			<SidebarMenu>
-				<SidebarMenuItem>
-					<div
-						class="flex items-center gap-2 px-2 py-1.5 group-data-[collapsible=icon]:justify-center"
-					>
-						<Avatar class="size-8 shrink-0">
-							<AvatarFallback class="bg-brain-pink/20 text-brain-pink">
-								{{ initials }}
-							</AvatarFallback>
-						</Avatar>
-						<div
-							class="flex min-w-0 flex-1 flex-col group-data-[collapsible=icon]:hidden"
-						>
-							<span class="truncate text-sm font-medium">{{ user?.username }}</span>
-							<Badge variant="secondary" class="mt-0.5 w-fit text-[10px]">
-								Admin
-							</Badge>
-						</div>
-					</div>
-				</SidebarMenuItem>
-				<SidebarMenuItem>
-					<SidebarMenuButton tooltip="Log out" @click="onLogout">
-						<LogOutIcon />
-						<span>Log out</span>
-					</SidebarMenuButton>
-				</SidebarMenuItem>
-			</SidebarMenu>
+			<UserAccountMenu />
 		</SidebarFooter>
 
 		<SidebarRail />

@@ -4,10 +4,14 @@ import HomeView from '@/views/HomeView.vue'
 import LoginView from '@/views/LoginView.vue'
 import NotFoundView from '@/views/NotFoundView.vue'
 import DashboardOverviewView from '@/views/dashboard/DashboardOverviewView.vue'
-import { authGuard, guestGuard } from './guards'
+import { adminGuard, authGuard, guestGuard } from './guards'
 
 const DashboardDocsView = () =>
 	import('@/views/dashboard/DashboardDocsView.vue')
+const DashboardProfileView = () =>
+	import('@/views/dashboard/DashboardProfileView.vue')
+const DashboardUsersView = () =>
+	import('@/views/dashboard/DashboardUsersView.vue')
 
 export const router = createRouter({
 	history: createWebHistory(),
@@ -25,6 +29,17 @@ export const router = createRouter({
 					component: DashboardOverviewView,
 				},
 				{
+					path: 'profile',
+					name: 'dashboard-profile',
+					component: DashboardProfileView,
+				},
+				{
+					path: 'users',
+					name: 'dashboard-users',
+					component: DashboardUsersView,
+					meta: { requiresAdmin: true },
+				},
+				{
 					path: 'docs',
 					name: 'dashboard-docs',
 					component: DashboardDocsView,
@@ -40,5 +55,8 @@ router.beforeEach(async (to) => {
 	const guestRedirect = await guestGuard(to)
 	if (guestRedirect !== true) return guestRedirect
 
-	return authGuard(to)
+	const authRedirect = await authGuard(to)
+	if (authRedirect !== true) return authRedirect
+
+	return adminGuard(to)
 })

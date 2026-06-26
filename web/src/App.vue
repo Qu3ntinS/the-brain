@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
 import SynapseBackground from '@/components/SynapseBackground.vue'
+import { Toaster } from '@/components/ui/sonner'
 
 const route = useRoute()
 const showLandingFx = computed(() => !route.meta.dashboard)
@@ -16,5 +17,6 @@ const showLandingFx = computed(() => !route.meta.dashboard)
 			<SynapseBackground />
 		</template>
 		<RouterView />
+		<Toaster position="top-right" rich-colors close-button />
 	</div>
 </template>

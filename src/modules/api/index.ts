@@ -1,8 +1,10 @@
 import { Elysia, t } from 'elysia'
 import { openapi } from '@elysiajs/openapi'
+import { checkDatabase } from '../../database/client'
 import { jwtAuth } from '../../plugins/jwt-auth'
 import { docsAuth } from '../../plugins/docs-auth'
 import { authModule } from '../auth'
+import { usersModule } from '../users'
 import { apiErrorHandler } from './error-page'
 import { docsInfo, renderDocsPage } from './docs-page'
 
@@ -17,6 +19,7 @@ export const apiModule = new Elysia({ prefix: '/api', name: 'api' })
 				info: docsInfo,
 				tags: [
 					{ name: 'Auth', description: 'JWT authentication' },
+					{ name: 'Users', description: 'User management' },
 					{ name: 'System', description: 'Health & utilities' },
 				],
 				components: {
@@ -47,14 +50,33 @@ export const apiModule = new Elysia({ prefix: '/api', name: 'api' })
 		detail: { hide: true },
 	})
 	.use(authModule)
+	.use(usersModule)
 	.get(
 		'/health',
-		() => ({
-			status: 'ok',
-			service: 'the-brain',
-			timestamp: new Date().toISOString(),
-		}),
+		async () => {
+			const database = await checkDatabase()
+
+			return {
+				status: database.ok ? 'ok' : 'degraded',
+				service: 'the-brain',
+				timestamp: new Date().toISOString(),
+				database: database.ok ? 'connected' : 'disconnected',
+				...(database.ok ? {} : { databaseError: database.error }),
+			}
+		},
 		{
+			response: {
+				200: t.Object({
+					status: t.Union([t.Literal('ok'), t.Literal('degraded')]),
+					service: t.Literal('the-brain'),
+					timestamp: t.String(),
+					database: t.Union([
+						t.Literal('connected'),
+						t.Literal('disconnected'),
+					]),
+					databaseError: t.Optional(t.String()),
+				}),
+			},
 			detail: {
 				summary: 'Health check',
 				tags: ['System'],

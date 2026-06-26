@@ -38,8 +38,14 @@ export async function fetchMe(): Promise<AuthUser | null> {
 		return null
 	}
 
-	sessionState.user = data
-	return data
+	sessionState.user = {
+		id: data.id,
+		username: data.username,
+		displayName: data.displayName,
+		avatarUrl: data.avatarUrl,
+		role: data.role,
+	}
+	return sessionState.user
 }
 
 export async function refreshSession(): Promise<boolean> {

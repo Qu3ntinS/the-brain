@@ -14,13 +14,20 @@ const route = useRoute()
 
 const pageTitle = computed(() => {
 	if (route.name === 'dashboard-docs') return 'API docs'
+	if (route.name === 'dashboard-profile') return 'Profile'
+	if (route.name === 'dashboard-users') return 'Users'
 	if (route.name === 'dashboard') return 'Overview'
 	return 'Dashboard'
 })
 
 const fullBleed = computed(() => !!route.meta.fullBleed)
 
-const greeting = computed(() => sessionState.user?.username ?? 'there')
+const greeting = computed(
+	() =>
+		sessionState.user?.displayName ??
+		sessionState.user?.username ??
+		'there',
+)
 </script>
 
 <template>

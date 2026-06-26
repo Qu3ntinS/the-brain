@@ -14,6 +14,16 @@ export async function authGuard(to: RouteLocationNormalized) {
 	}
 }
 
+export async function adminGuard(to: RouteLocationNormalized) {
+	if (!to.meta.requiresAdmin) return true
+
+	await waitForSession()
+
+	if (sessionState.user?.role === 'admin') return true
+
+	return { name: 'dashboard' }
+}
+
 export async function guestGuard(to: RouteLocationNormalized) {
 	if (to.name !== 'login') return true
 

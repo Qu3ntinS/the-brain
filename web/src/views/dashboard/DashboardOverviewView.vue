@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { ActivityIcon, HeartPulseIcon, RadioIcon } from '@lucide/vue'
 import { api } from '@/lib/api'
 import { sessionState } from '@/composables/useSession'
+import { toastError } from '@/lib/toast'
 import { Badge } from '@/components/ui/badge'
 import {
 	Card,
@@ -26,21 +27,18 @@ type Ping = {
 
 const health = ref<Health | null>(null)
 const ping = ref<Ping | null>(null)
-const healthError = ref(false)
-const pingError = ref(false)
 const loadingHealth = ref(true)
 const loadingPing = ref(true)
 
 async function loadHealth() {
 	loadingHealth.value = true
-	healthError.value = false
 
 	const { data, error } = await api.api.health.get()
 
 	loadingHealth.value = false
 
 	if (error || !data) {
-		healthError.value = true
+		toastError('API health check failed.')
 		return
 	}
 
@@ -49,14 +47,13 @@ async function loadHealth() {
 
 async function loadPing() {
 	loadingPing.value = true
-	pingError.value = false
 
 	const { data, error } = await api.api.ping.get()
 
 	loadingPing.value = false
 
 	if (error || !data) {
-		pingError.value = true
+		toastError('Protected ping failed.')
 		return
 	}
 
@@ -87,11 +84,15 @@ onMounted(() => {
 					<RadioIcon class="text-brain-pink" />
 				</CardHeader>
 				<CardContent class="flex flex-col gap-2">
-					<p class="text-2xl font-semibold">{{ sessionState.user?.username }}</p>
-					<p class="text-xs text-muted-foreground">
-						ID {{ sessionState.user?.id }}
+					<p class="text-2xl font-semibold">
+						{{ sessionState.user?.displayName || sessionState.user?.username }}
 					</p>
-					<Badge variant="secondary" class="w-fit">Authenticated</Badge>
+					<p class="text-xs text-muted-foreground">
+						@{{ sessionState.user?.username }} · {{ sessionState.user?.role }}
+					</p>
+					<Badge variant="secondary" class="w-fit capitalize">
+						{{ sessionState.user?.role }}
+					</Badge>
 				</CardContent>
 			</Card>
 
@@ -105,13 +106,13 @@ onMounted(() => {
 						<Skeleton class="h-8 w-24" />
 						<Skeleton class="h-4 w-full" />
 					</template>
-					<template v-else-if="healthError">
-						<p class="text-sm text-destructive">Unreachable</p>
-					</template>
 					<template v-else-if="health">
 						<p class="text-2xl font-semibold capitalize">{{ health.status }}</p>
 						<p class="text-xs text-muted-foreground">{{ health.service }}</p>
 						<p class="text-[11px] text-muted-foreground">{{ health.timestamp }}</p>
+					</template>
+					<template v-else>
+						<p class="text-sm text-muted-foreground">No data</p>
 					</template>
 				</CardContent>
 			</Card>
@@ -126,14 +127,14 @@ onMounted(() => {
 						<Skeleton class="h-8 w-full" />
 						<Skeleton class="h-4 w-20" />
 					</template>
-					<template v-else-if="pingError">
-						<p class="text-sm text-destructive">Ping failed</p>
-					</template>
 					<template v-else-if="ping">
 						<p class="text-sm leading-relaxed">{{ ping.message }}</p>
 						<Badge variant="outline" class="w-fit border-brain-gold/40 text-brain-gold">
 							user {{ ping.userId.slice(0, 8) }}…
 						</Badge>
+					</template>
+					<template v-else>
+						<p class="text-sm text-muted-foreground">No data</p>
 					</template>
 				</CardContent>
 			</Card>

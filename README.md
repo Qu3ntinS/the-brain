@@ -19,8 +19,18 @@
 cp .env.example .env   # JWT_SECRET + ADMIN_PASSWORD setzen
 bun install
 bun run --cwd web install
-bun run dev            # API :3000 · UI :5173 (proxied /api)
+bun run dev            # Docker (Postgres, Adminer, Mailpit) + API :3000 · UI :5173
 ```
+
+`bun run dev` startet automatisch die Docker-Services (Postgres, Adminer, Mailpit). Ohne Docker laufen API und Web trotzdem — die DB-Verbindung ist dann nur nicht verfügbar (`/api/health` meldet `degraded`).
+
+| Service | URL / Port |
+|---------|------------|
+| Postgres | `localhost:5432` |
+| Adminer | http://localhost:8080 (Server: `postgres`, User/Pass: `brain`) |
+| Mailpit UI | http://localhost:18025 (SMTP: `localhost:11025`) |
+
+Services stoppen: `bun run dev:down`
 
 Production build:
 
@@ -34,17 +44,24 @@ bun run start
 | Variable | Required | Default |
 |----------|----------|---------|
 | `JWT_SECRET` | yes | — |
-| `ADMIN_PASSWORD` | yes | — |
-| `ADMIN_USERNAME` | no | `admin` |
+| `ADMIN_PASSWORD` | yes | — (seeds initial admin in Postgres) |
+| `ADMIN_USERNAME` | no | `admin` (seeds initial admin in Postgres) |
 | `PORT` | no | `3000` |
 | `JWT_EXPIRES_IN` | no | `7d` |
+| `DATABASE_URL` | no | `postgres://brain:brain@localhost:5432/brain` |
+| `SMTP_HOST` | no | `localhost` |
+| `SMTP_PORT` | no | `11025` |
 | `CORS_ORIGIN` | prod | — |
 
 ## Scripts
 
 | Command | Description |
 |---------|-------------|
-| `bun run dev` | API + web dev servers |
+| `bun run dev` | Docker services + API + web dev servers |
+| `bun run dev:down` | Stop Docker services |
+| `bun run db:push` | Sync Drizzle schema to Postgres (dev) |
+| `bun run db:migrate` | Apply SQL migrations |
+| `bun run db:seed` | Create/update admin user from env |
 | `bun run build` | Build SPA into `web/dist` |
 | `bun run start` | Run API (serves built UI) |
 | `bun test` | Backend tests |

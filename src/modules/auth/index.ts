@@ -1,6 +1,8 @@
-import { Elysia } from 'elysia'
+import { Elysia, t } from 'elysia'
 import { clearSessionCookie } from '../../lib/auth-cookie'
+import { errors } from '../../lib/http-errors'
 import { jwtAuth } from '../../plugins/jwt-auth'
+import { UsersService } from '../users/service'
 import * as AuthModel from './model'
 import { AuthService } from './service'
 
@@ -10,26 +12,17 @@ export const authModule = new Elysia({ prefix: '/auth', name: 'auth' })
 		'auth.login': AuthModel.loginBody,
 		'auth.token': AuthModel.tokenResponse,
 		'auth.me': AuthModel.meResponse,
+		'auth.profile': AuthModel.updateProfileBody,
 		'auth.error': AuthModel.errorResponse,
 		'auth.ok': AuthModel.okResponse,
 	})
 	.post(
 		'/login',
 		async ({ body, jwt, cookie }) => {
-			const validated = AuthService.validateCredentials(body)
-			if ('code' in validated) return validated
+			const user = await AuthService.validateCredentials(body)
+			if ('code' in user) return user
 
-			const session = await AuthService.issueSession(
-				jwt,
-				validated.username,
-			)
-
-			AuthService.applySessionCookie(
-				cookie.brain_token,
-				session.accessToken,
-			)
-
-			return AuthService.buildSessionResponse(session.accessToken)
+			return AuthService.establishSession(jwt, cookie.brain_token, user)
 		},
 		{
 			body: 'auth.login',
@@ -47,14 +40,17 @@ export const authModule = new Elysia({ prefix: '/auth', name: 'auth' })
 	.post(
 		'/refresh',
 		async ({ user, jwt, cookie }) => {
-			const session = await AuthService.issueSession(jwt, user.username)
+			const profile = await UsersService.getById(user.id)
 
-			AuthService.applySessionCookie(
+			if (!profile) {
+				return errors.unauthorized()
+			}
+
+			return AuthService.establishSession(
+				jwt,
 				cookie.brain_token,
-				session.accessToken,
+				UsersService.toAuthUser(profile),
 			)
-
-			return AuthService.buildSessionResponse(session.accessToken)
 		},
 		{
 			isAuth: true,
@@ -73,17 +69,123 @@ export const authModule = new Elysia({ prefix: '/auth', name: 'auth' })
 	)
 	.get(
 		'/me',
-		({ user }) => user,
+		async ({ user }) => {
+			const profile = await UsersService.getById(user.id)
+
+			if (!profile) {
+				return errors.notFound('User not found')
+			}
+
+			return profile
+		},
 		{
 			isAuth: true,
 			response: {
 				200: 'auth.me',
 				401: 'auth.error',
+				404: 'auth.error',
 			},
 			detail: {
 				summary: 'Current user',
+				description: 'Returns the authenticated user profile from the database',
+				tags: ['Auth'],
+				security: [{ bearerAuth: [] }],
+			},
+		},
+	)
+	.patch(
+		'/me',
+		async ({ user, body, jwt, cookie }) => {
+			const updated = await UsersService.updateProfile(user.id, body)
+
+			if ('code' in updated) return updated
+
+			await AuthService.reissueSession(
+				jwt,
+				cookie.brain_token,
+				UsersService.toAuthUser(updated),
+			)
+
+			return updated
+		},
+		{
+			isAuth: true,
+			body: 'auth.profile',
+			response: {
+				200: 'auth.me',
+				400: 'auth.error',
+				401: 'auth.error',
+				404: 'auth.error',
+			},
+			detail: {
+				summary: 'Update profile',
 				description:
-					'Returns the authenticated user from the JWT or session cookie',
+					'Update display name and/or password for the current user',
+				tags: ['Auth'],
+				security: [{ bearerAuth: [] }],
+			},
+		},
+	)
+	.post(
+		'/me/avatar',
+		async ({ user, body, jwt, cookie }) => {
+			const updated = await UsersService.updateAvatar(user.id, body.avatar)
+
+			if ('code' in updated) return updated
+
+			await AuthService.reissueSession(
+				jwt,
+				cookie.brain_token,
+				UsersService.toAuthUser(updated),
+			)
+
+			return updated
+		},
+		{
+			isAuth: true,
+			body: t.Object({
+				avatar: t.File({
+					type: 'image',
+					maxSize: '2m',
+				}),
+			}),
+			response: {
+				200: 'auth.me',
+				400: 'auth.error',
+				401: 'auth.error',
+				404: 'auth.error',
+			},
+			detail: {
+				summary: 'Upload profile avatar',
+				tags: ['Auth'],
+				security: [{ bearerAuth: [] }],
+			},
+		},
+	)
+	.delete(
+		'/me/avatar',
+		async ({ user, jwt, cookie }) => {
+			const updated = await UsersService.removeAvatar(user.id)
+
+			if ('code' in updated) return updated
+
+			await AuthService.reissueSession(
+				jwt,
+				cookie.brain_token,
+				UsersService.toAuthUser(updated),
+			)
+
+			return updated
+		},
+		{
+			isAuth: true,
+			response: {
+				200: 'auth.me',
+				401: 'auth.error',
+				404: 'auth.error',
+			},
+			detail: {
+				summary: 'Remove profile avatar',
 				tags: ['Auth'],
 				security: [{ bearerAuth: [] }],
 			},

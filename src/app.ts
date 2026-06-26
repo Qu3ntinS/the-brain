@@ -6,6 +6,7 @@ import { env } from './config/env'
 import { apiModule } from './modules/api'
 import { spaModule } from './modules/spa'
 import { apiNotFoundHandler } from './modules/api/error-page'
+import { database } from './plugins/database'
 
 const webIndex = join(process.cwd(), 'web/dist/index.html')
 
@@ -26,6 +27,7 @@ const serveSpaShell = (set: {
 
 export const createApp = () =>
 	new Elysia()
+		.use(database)
 		.use(
 			cors({
 				origin: env.corsOrigin,

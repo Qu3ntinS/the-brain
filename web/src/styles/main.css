@@ -1,4 +1,6 @@
 
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap');
+
 @layer scalar-base, scalar-theme, scalar-config, theme, base, components, utilities;
 
 @import 'tailwindcss';
@@ -146,5 +148,14 @@ body,
 		font-family: var(--font-body);
 		color: var(--color-brain-text);
 		background: var(--color-brain-bg);
+	}
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+	}
+  body {
+    @apply bg-background text-foreground;
 	}
 }

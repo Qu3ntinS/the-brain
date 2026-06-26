@@ -2,13 +2,13 @@
 import { onMounted, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { login, syncSession } from '@/composables/useSession'
+import { toastError } from '@/lib/toast'
 
 const route = useRoute()
 const router = useRouter()
 
 const username = ref('')
 const password = ref('')
-const error = ref('')
 const loading = ref(false)
 
 onMounted(async () => {
@@ -22,14 +22,13 @@ onMounted(async () => {
 })
 
 async function onSubmit() {
-	error.value = ''
 	loading.value = true
 
 	try {
 		const ok = await login(username.value, password.value)
 
 		if (!ok) {
-			error.value = 'Invalid username or password.'
+			toastError('Invalid username or password.')
 			return
 		}
 
@@ -40,7 +39,7 @@ async function onSubmit() {
 
 		await router.replace(next)
 	} catch {
-		error.value = 'Could not reach The Brain. Try again.'
+		toastError('Could not reach The Brain. Try again.')
 	} finally {
 		loading.value = false
 	}
@@ -76,10 +75,6 @@ async function onSubmit() {
 						required
 					/>
 				</label>
-
-				<p v-if="error" class="min-h-[1.2em] text-sm text-[#ff8fab]" aria-live="polite">
-					{{ error }}
-				</p>
 
 				<button
 					class="mt-1 inline-flex justify-center rounded-full bg-gradient-to-br from-brain-pink to-[#c44dff] px-5 py-3 text-sm font-medium text-white shadow-[0_8px_32px_rgba(255,107,203,0.35)] transition hover:scale-[1.04] disabled:opacity-60"

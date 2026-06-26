@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'bun:test'
 
-process.env.JWT_SECRET = 'test-jwt-secret'
-process.env.ADMIN_PASSWORD = 'test-password'
-process.env.ADMIN_USERNAME = 'admin'
-
 const { createApp } = await import('../src/app')
 
 describe('auth', () => {
